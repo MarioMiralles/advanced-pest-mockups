@@ -1,0 +1,4163 @@
+/*
+ * The chat panel's looks (#395). One section per look; sections that apply to every look come
+ * first. Enqueued after sitestaffr-chat-panel.css only when the new panel is on.
+ *
+ * Everything here is driven by data-ssp-* attributes (and --widget-bg-color / --ss-radius custom
+ * properties) and fully styles the panel by itself. The legacy data-ss-* attributes may still be
+ * copied onto the panel while the 1.59 emission stays; no rule below depends on them. Selectors
+ * are prefixed `.sitestaffr-chat-panel.sitestaffr-panel` (0,2,0) so they outrank the base panel
+ * rules and the legacy :where() rules of sitestaffr-chat-panel.css without !important.
+ *
+ * Brand: --widget-bg-color stays the brand input (the proposal builder, capture_widget.py, sets it);
+ * the base stylesheet turns it into --ss-accent / --ss-on-accent / --ss-accent-text with its own
+ * contrast rule, which this file reuses rather than inventing a second one.
+ */
+
+/* === SHARED TOKENS === */
+
+.sitestaffr-chat-panel.sitestaffr-panel {
+	--ssp-brand: var(--ss-accent);
+	--ssp-on-brand: var(--ss-on-accent);
+	--ssp-brand-text: var(--ss-accent-text);
+	--ssp-radius: var(--ss-radius, 12px);
+	--ssp-radius-sm: min(var(--ssp-radius), 10px);
+	--ssp-radius-lg: min(calc(var(--ssp-radius) * 1.4 + 2px), 28px);
+	--ssp-surface: color-mix(in srgb, var(--ssp-brand) 3.5%, #ffffff);
+	--ssp-card: #ffffff;
+	--ssp-soft: color-mix(in srgb, var(--ssp-brand) 8%, #ffffff);
+	--ssp-ink: #15191e;
+	--ssp-muted: #5e6670;
+	--ssp-line: rgba(0, 0, 0, 0.1);
+	--ssp-shadow: 0 24px 64px rgba(10, 15, 20, 0.3), 0 4px 14px rgba(10, 15, 20, 0.12);
+
+	/* The base stylesheet's tokens, pointed at this panel's so every shared rule (messages,
+	   typing dots, the inactive-plan contact form) follows the surface and the corners. */
+	--ss-r: var(--ssp-radius);
+	--ss-r-bubble: var(--ssp-radius);
+	--ss-r-tile: var(--ssp-radius-sm);
+	--ss-r-round: var(--ssp-radius-sm);
+	--ss-surface: var(--ssp-surface);
+	--ss-card: var(--ssp-card);
+	--ss-soft: var(--ssp-soft);
+	--ss-ink: var(--ssp-ink);
+	--ss-ink-muted: var(--ssp-muted);
+	--ss-rule: var(--ssp-line);
+	--chat-bg: var(--ssp-surface);
+	--chat-border: var(--ssp-line);
+	--chat-text: var(--ssp-ink);
+	--chat-text-muted: var(--ssp-muted);
+	--chat-radius: var(--ssp-radius-lg);
+	--chat-input-bg: var(--ssp-surface);
+	--chat-input-border: var(--ssp-line);
+	--chat-assistant-bg: var(--ssp-card);
+	--chat-assistant-text: var(--ssp-ink);
+	--chat-visitor-bg: var(--ssp-brand);
+	--chat-visitor-text: var(--ssp-on-brand);
+	--chat-primary: var(--ssp-brand);
+	--chat-text-on-primary: var(--ssp-on-brand);
+
+	background: var(--ssp-surface);
+	color: var(--ssp-ink);
+	font-family: var(--ssp-font, inherit);
+	border-radius: var(--ssp-radius-lg);
+	box-shadow: var(--ssp-shadow);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-bg="tinted"] {
+	--ssp-surface: color-mix(in srgb, var(--ssp-brand) 5%, #fbfaf8);
+	--ssp-card: color-mix(in srgb, #ffffff 60%, var(--ssp-surface));
+	--ssp-soft: color-mix(in srgb, var(--ssp-brand) 10%, var(--ssp-surface));
+	--ssp-line: rgba(0, 0, 0, 0.12);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-bg="dark"] {
+	--ssp-surface: color-mix(in srgb, var(--ssp-brand) 14%, #10161c);
+	--ssp-card: color-mix(in srgb, #ffffff 7%, var(--ssp-surface));
+	--ssp-soft: color-mix(in srgb, #ffffff 13%, var(--ssp-surface));
+	--ssp-ink: #f1f4f6;
+	--ssp-muted: #a9b4bd;
+	--ssp-line: rgba(255, 255, 255, 0.13);
+	--ssp-brand-text: color-mix(in srgb, var(--ssp-brand) 32%, #ffffff);
+	--ssp-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-font="site"] { --ssp-font: var(--ss-site-font, inherit); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-font="clean"] { --ssp-font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+
+/* Which screen shows: the first screen replaces the conversation, and the conversation brings its composer. */
+.sitestaffr-chat-panel.sitestaffr-panel:not([data-ssp-screen="start"]) .sitestaffr-panel-start,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="start"] .sitestaffr-chat-messages,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="start"] .sitestaffr-chat-char-count,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="start"] .sitestaffr-chat-input-area {
+	display: none;
+}
+
+/* Desktop size: the first screen is as tall as its content, a conversation fills the panel. */
+@media (min-width: 481px) {
+	.sitestaffr-chat-panel.sitestaffr-panel {
+		--chat-panel-width: 392px;
+		--chat-panel-height: 620px;
+		max-height: min(640px, calc(100vh - 120px));
+	}
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="start"] {
+		height: auto;
+	}
+}
+
+/* === FRONT DESK === */
+
+/* Header: a brand rule across the top, the mark, the name, "AI assistant" with the live hours. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-header {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 18px 12px 14px 18px;
+	background: var(--ssp-card);
+	color: var(--ssp-ink);
+	border-bottom: 1px solid var(--ssp-line);
+	flex-shrink: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-header::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	height: 4px;
+	background: var(--ssp-brand);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mark {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	border-radius: var(--ssp-radius-sm);
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+	font-size: 18px;
+	font-weight: 700;
+	line-height: 1;
+	overflow: hidden;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mark.is-logo {
+	background-color: #ffffff;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+	background-origin: content-box;
+	padding: 3px;
+	border: 1px solid var(--ssp-line);
+	box-sizing: border-box;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-header-identity {
+	flex-direction: column;
+	gap: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-header-title {
+	font-size: 16.5px;
+	font-weight: 700;
+	line-height: 1.2;
+	letter-spacing: 0;
+	color: var(--ssp-ink);
+}
+
+/* The AI disclosure line (#250): never hidden, full strength, and never cut. With the hours it can
+   outgrow a phone's header ("AI assistant · Closed · opens tomorrow 7:30 AM" at 412px), so it wraps
+   onto a second line instead of the base stylesheet's one-line ellipsis. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-header-subtitle {
+	display: block;
+	margin-top: 3px;
+	font-size: 12.5px;
+	font-weight: 400;
+	line-height: 1.3;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--ssp-muted);
+	opacity: 1;
+	white-space: normal;
+	overflow: visible;
+	text-overflow: clip;
+	overflow-wrap: break-word;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-live {
+	display: inline-block;
+	vertical-align: 1px;
+	margin: 0 7px 0 0;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: #22a55b;
+	box-shadow: 0 0 0 3px rgba(34, 165, 91, 0.2);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-bg="dark"] .sitestaffr-panel-live {
+	background: #3dd07a;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-header-btn {
+	width: 34px;
+	height: 34px;
+	color: var(--ssp-ink);
+	border-radius: 8px;
+	opacity: 0.72;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-header-btn:hover,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-header-btn:focus-visible {
+	opacity: 1;
+	background: var(--ssp-soft);
+	color: var(--ssp-ink);
+}
+
+/* First screen */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	padding: 18px;
+	/* The first screen never scrolls (#582): sitestaffr-panel.js tightens it and drops the last questions instead. */
+	overflow: hidden;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start [hidden] {
+	display: none !important;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-greeting {
+	margin: 2px 0 14px;
+	font-family: inherit;
+	font-size: 25px;
+	font-weight: 700;
+	line-height: 1.15;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-modes {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+	gap: 10px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mode {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 14px 12px;
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius);
+	background: var(--ssp-card);
+	color: var(--ssp-ink);
+	font-family: inherit;
+	text-align: left;
+	line-height: 1.3;
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mode b {
+	display: block;
+	font-size: 15.5px;
+	font-weight: 700;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mode small {
+	display: block;
+	margin-top: 1px;
+	font-size: 12px;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mode .sitestaffr-panel-icon {
+	flex: none;
+	color: var(--ssp-brand-text);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mode.is-primary {
+	background: var(--ssp-brand);
+	border-color: transparent;
+	color: var(--ssp-on-brand);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mode.is-primary .sitestaffr-panel-icon,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mode.is-primary small {
+	color: inherit;
+}
+
+/* Full strength: 85% ink on a mid-tone brand (copper, green, red) measured under 4.5:1 in the contrast audit. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mode.is-primary small {
+	opacity: 1;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mode:hover {
+	border-color: var(--ssp-brand);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mode:focus-visible,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-question:focus-visible,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-header-btn:focus-visible,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-go:focus-visible,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mic:focus-visible {
+	outline: 2px solid var(--ssp-brand-text);
+	outline-offset: 2px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-label {
+	margin: 22px 0 8px;
+	font-size: 11.5px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-question {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	margin: 0 0 8px;
+	padding: 12px 14px;
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius-sm);
+	background: var(--ssp-card);
+	color: var(--ssp-ink);
+	font-family: inherit;
+	font-size: 14.5px;
+	line-height: 1.35;
+	text-align: left;
+	cursor: pointer;
+	box-shadow: none;
+	box-sizing: border-box;
+	min-width: 0;
+	max-width: 100%;
+	white-space: normal;
+}
+
+/* A question wraps to two lines, then an ellipsis. The span is what clamps: a flex button cannot clamp a bare text node. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-question .sitestaffr-panel-question-text {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow: hidden;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	text-align: left;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-question .sitestaffr-panel-icon {
+	flex: none;
+	color: var(--ssp-brand-text);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-question:hover {
+	border-color: var(--ssp-brand);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call-line {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: auto;
+	padding-top: 16px;
+	font-size: 13.5px;
+	color: var(--ssp-muted);
+	text-decoration: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call-line .sitestaffr-panel-icon {
+	flex: none;
+	color: var(--ssp-brand-text);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call-line b {
+	color: var(--ssp-ink);
+	font-weight: 700;
+}
+
+/* A phone number reads left to right on an Arabic or Persian page too (#766). */
+.sitestaffr-chat-panel.sitestaffr-panel[dir="rtl"] .sitestaffr-panel-call-line b,
+.sitestaffr-chat-panel.sitestaffr-panel[dir="rtl"] .sitestaffr-panel-tb-cell.is-call b,
+.sitestaffr-chat-panel.sitestaffr-panel[dir="rtl"] .sitestaffr-panel-act.is-main small {
+	direction: ltr;
+	unicode-bidi: isolate;
+}
+
+/* Conversation */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-messages {
+	padding: 18px;
+	gap: 12px;
+	/* The 1.59 "large header" preset (data-ss-header="hero", still copied onto the panel) pulls the
+	   message list 18px up over the header and rounds its top: on the new panel that covered the
+	   bottom of the mark. The panel's header is never that tall. */
+	margin-top: 0;
+	border-radius: 0;
+	background: transparent;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-message {
+	max-width: 84%;
+	padding: 11px 14px;
+	border-radius: var(--ssp-radius);
+	font-size: 14.5px;
+	line-height: 1.45;
+	letter-spacing: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-message--assistant {
+	align-self: flex-start;
+	background: var(--ssp-card);
+	color: var(--ssp-ink);
+	border: 1px solid var(--ssp-line);
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-message--visitor {
+	align-self: flex-end;
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+	border: 0;
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-message--assistant a {
+	color: var(--ssp-brand-text);
+}
+
+/* Beside the replies (#609): the business's logo or initial at each reply's top left, never a person's photo. */
+.sitestaffr-chat-panel.sitestaffr-panel:is([data-ssp-beside="logo"], [data-ssp-beside="initial"]) .sitestaffr-chat-message--assistant {
+	margin-left: 38px;
+	max-width: calc(84% - 38px);
+	position: relative;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel:is([data-ssp-beside="logo"], [data-ssp-beside="initial"]) .sitestaffr-chat-message--assistant::before {
+	background: var(--ssp-brand);
+	border-radius: var(--ssp-radius-sm);
+	color: var(--ssp-on-brand);
+	content: var(--ssp-initial, "");
+	display: grid;
+	font: 700 13px/1 var(--ssp-font, inherit);
+	height: 28px;
+	left: -38px;
+	place-items: center;
+	position: absolute;
+	top: 2px;
+	width: 28px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-beside="logo"] .sitestaffr-chat-message--assistant::before {
+	background: #ffffff var(--ss-logo) center / 76% no-repeat;
+	box-shadow: 0 0 0 1px var(--ssp-line);
+	content: "";
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-typing {
+	background: var(--ssp-card);
+	border: 1px solid var(--ssp-line);
+	box-shadow: none;
+	border-radius: var(--ssp-radius);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-notice {
+	color: var(--ssp-muted);
+}
+
+/* Contact card with Edit */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-contact {
+	flex: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-card {
+	background: var(--ssp-card);
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius);
+	padding: 13px 16px 12px;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-card-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 6px;
+	font-size: 15px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-card-head > .sitestaffr-panel-icon {
+	flex: none;
+	box-sizing: border-box;
+	width: 20px;
+	height: 20px;
+	padding: 3px;
+	border-radius: 50%;
+	background: #1f9d55;
+	color: #ffffff;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-edit {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	margin: 0 0 0 auto;
+	padding: 4px 2px;
+	border: 0;
+	background: none;
+	box-shadow: none;
+	font-family: inherit;
+	font-size: 12.5px;
+	font-weight: 700;
+	color: var(--ssp-brand-text);
+	cursor: pointer;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-card dl {
+	margin: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-card dl > div {
+	display: grid;
+	grid-template-columns: 66px 1fr;
+	gap: 8px;
+	align-items: center;
+	padding: 6px 0;
+	border-top: 1px dashed var(--ssp-line);
+	font-size: 13.5px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-card dt {
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-card dd {
+	margin: 0;
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-edit-input {
+	width: 100%;
+	margin: 0;
+	padding: 7px 9px;
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius-sm);
+	background: var(--ssp-surface);
+	color: var(--ssp-ink);
+	font-family: inherit;
+	font-size: 13.5px;
+	box-sizing: border-box;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-edit-input:focus {
+	outline: none;
+	border-color: var(--ssp-brand-text);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--ssp-brand) 18%, transparent);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-go {
+	display: block;
+	width: 100%;
+	margin: 8px 0 0;
+	padding: 12px;
+	border: 0;
+	border-radius: var(--ssp-radius-sm);
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+	font-family: inherit;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.2;
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-card-actions {
+	display: flex;
+	gap: 8px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-card-actions .sitestaffr-panel-go {
+	flex: 1;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-plain {
+	margin: 8px 0 0;
+	padding: 12px 14px;
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius-sm);
+	background: transparent;
+	color: var(--ssp-ink);
+	font-family: inherit;
+	font-size: 15px;
+	line-height: 1.2;
+	cursor: pointer;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-fine {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	margin: 8px 0 0;
+	font-size: 11.5px;
+	color: var(--ssp-muted);
+}
+
+/* Confirmed: the saved details stay on the card (Mario, 2026-10-22: an empty "Your details" read as a bug),
+   under a thank-you heading, and the button that was answered goes. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-card.is-confirmed .sitestaffr-panel-go {
+	display: none;
+}
+
+/* Composer */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-char-count {
+	background: var(--ssp-card);
+	padding-top: 6px;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-input-area {
+	margin: 0;
+	padding: 12px 14px;
+	gap: 8px;
+	border: 0;
+	border-top: 1px solid var(--ssp-line);
+	border-radius: 0;
+	background: var(--ssp-card);
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-input-area:focus-within {
+	border-color: var(--ssp-line);
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-textarea {
+	min-height: 44px;
+	padding: 12px 14px;
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius);
+	background: var(--ssp-surface);
+	color: var(--ssp-ink);
+	font-size: 14.5px;
+	line-height: 1.3;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-textarea:focus {
+	border: 1px solid var(--ssp-brand-text);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--ssp-brand) 18%, transparent);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-textarea::placeholder {
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-send-btn,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mic {
+	display: grid;
+	place-items: center;
+	flex: none;
+	width: 44px;
+	height: 44px;
+	margin: 0;
+	padding: 0;
+	border-radius: var(--ssp-radius-sm);
+	box-shadow: none;
+	cursor: pointer;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-send-btn {
+	border: 0;
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-send-btn:hover:not(:disabled) {
+	background: var(--ssp-brand);
+	filter: brightness(0.94);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-mic {
+	border: 1px solid var(--ssp-line);
+	background: transparent;
+	color: var(--ssp-brand-text);
+}
+
+/* The launcher takes the look too: round, like the gallery's. Neon keeps its own skin. */
+#sitestaffr-widget[data-ssp-look="front_desk"]:not(.sitestaffr-theme-neon) .sitestaffr-widget-button {
+	border-radius: 50%;
+}
+
+/* === CONCIERGE === */
+
+/* No bubbles: each turn is a labelled paragraph between hairlines, set in the site's own face.
+   Everything below is scoped to the look, so Front Desk and the legacy panel never see it. */
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] {
+	--ssp-head: var(--ssp-font, inherit);
+}
+
+/* Header: an outlined monogram, the AI line as a small-caps eyebrow above the name, a hairline inside the rule. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-header {
+	gap: 14px;
+	padding: 20px 14px 18px 22px;
+	background: transparent;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-header::before {
+	top: auto;
+	bottom: 3px;
+	left: 22px;
+	right: 22px;
+	height: 1px;
+	background: var(--ssp-line);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-mark {
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	background: transparent;
+	border: 1px solid var(--ssp-brand-text);
+	color: var(--ssp-brand-text);
+	font-family: var(--ssp-head);
+	font-size: 21px;
+	font-weight: 400;
+	box-sizing: border-box;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-mark.is-logo {
+	background-color: #ffffff;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+	background-origin: content-box;
+	border-color: var(--ssp-line);
+	border-radius: 50%;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-header-identity {
+	flex-direction: column-reverse;
+	min-width: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-header-title {
+	margin-top: 3px;
+	font-family: var(--ssp-head);
+	font-size: 21px;
+	font-weight: 400;
+	line-height: 1.2;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* The disclosure stays whole: it may wrap onto a second line, it is never cut or hidden (#250). */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-header-subtitle {
+	margin-top: 0;
+	font-size: 10.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	line-height: 1.35;
+	white-space: normal;
+	overflow: visible;
+	text-overflow: clip;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-live {
+	display: none;
+}
+
+/* First screen: two ruled rows, then a numbered list, then one quiet line to call. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-start {
+	padding: 20px 24px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-greeting {
+	margin: 4px 0 18px;
+	font-family: var(--ssp-head);
+	font-size: 31px;
+	font-weight: 400;
+	line-height: 1.1;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-modes {
+	display: block;
+	border-top: 1px solid var(--ssp-line);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-mode {
+	width: 100%;
+	gap: 14px;
+	padding: 16px 2px;
+	border: 0;
+	border-bottom: 1px solid var(--ssp-line);
+	border-radius: 0;
+	background: transparent;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-mode > span {
+	flex: 1;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-mode b {
+	font-family: var(--ssp-head);
+	font-size: 18px;
+	font-weight: 400;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-mode small {
+	font-size: 13px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-mode:hover {
+	background: var(--ssp-soft);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-label {
+	margin: 22px 0 4px;
+	font-size: 10.5px;
+	font-weight: 400;
+	letter-spacing: 0.16em;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-questions {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	counter-reset: ssp-q;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-questions li {
+	margin: 0;
+	padding: 0;
+	border-bottom: 1px dotted var(--ssp-line);
+	counter-increment: ssp-q;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-question {
+	justify-content: flex-start;
+	gap: 12px;
+	margin: 0;
+	padding: 10px 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	font-size: 15px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-question::before {
+	content: counter(ssp-q, decimal-leading-zero);
+	flex: none;
+	min-width: 18px;
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	color: var(--ssp-brand-text);
+}
+
+/* The Quick Sheet chips are questions too, but a row of pills is not a numbered list. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-chips .sitestaffr-panel-question.sitestaffr-panel-chip::before {
+	content: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-question:hover {
+	border: 0;
+	color: var(--ssp-brand-text);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-line {
+	padding-top: 18px;
+	font-size: 13px;
+	font-style: italic;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-line b {
+	font-weight: 400;
+}
+
+/* Conversation: turns, not bubbles. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-messages {
+	padding: 18px 24px;
+	gap: 12px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-turn {
+	align-self: stretch;
+	padding: 4px 0 12px;
+	border-bottom: 1px solid var(--ssp-line);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-turn--visitor {
+	padding: 2px 0 2px 14px;
+	border-bottom: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-who {
+	margin-bottom: 5px;
+	font-size: 10.5px;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-message {
+	max-width: none;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--ssp-ink);
+	font-size: 15px;
+	line-height: 1.55;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-message--assistant {
+	align-self: stretch;
+	font-family: var(--ssp-head);
+	font-size: 16px;
+	line-height: 1.5;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-message--visitor {
+	align-self: stretch;
+	background: transparent;
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-typing {
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	padding-left: 0;
+}
+
+/* Contact card: a ruled form with dotted leaders, the way a firm would write it down. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-card {
+	margin-top: 4px;
+	padding: 16px 18px;
+	border: 3px double var(--ssp-ink);
+	border-radius: var(--ssp-radius-sm);
+	background: var(--ssp-card);
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-card-head {
+	margin-bottom: 0;
+	font-family: var(--ssp-head);
+	font-size: 19px;
+	font-weight: 400;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-card-head > .sitestaffr-panel-icon {
+	display: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-card-sub {
+	margin: 2px 0 10px;
+	font-size: 12.5px;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-card dl > div {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	padding: 4px 0;
+	border-top: 0;
+	font-size: 13.5px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-card dt {
+	display: flex;
+	flex: 1;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-card dt::after {
+	content: "";
+	flex: 1;
+	border-bottom: 1px dotted var(--ssp-muted);
+	opacity: 0.55;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-card dd {
+	max-width: 64%;
+	text-align: right;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-card.is-editing dd {
+	max-width: 70%;
+	flex: 0 1 70%;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-go {
+	margin-top: 12px;
+	padding: 13px;
+	font-size: 12.5px;
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-edit {
+	display: block;
+	width: 100%;
+	margin: 8px 0 0;
+	padding: 2px;
+	text-align: center;
+	font-size: 12.5px;
+	font-weight: 400;
+	text-decoration: underline;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-fine {
+	margin-top: 6px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-card.is-confirmed .sitestaffr-panel-card-sub {
+	display: none;
+}
+
+/* Composer: a written line with a rule under it, an arrow to send. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-input-area {
+	padding: 14px 20px 18px;
+	background: transparent;
+	gap: 10px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-char-count {
+	background: transparent;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-textarea {
+	min-height: 40px;
+	padding: 10px 0;
+	border: 0;
+	border-bottom: 1px solid var(--ssp-ink);
+	border-radius: 0;
+	background: transparent;
+	font-family: var(--ssp-head);
+	font-size: 15px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-textarea::placeholder {
+	font-style: italic;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-textarea:focus {
+	border: 0;
+	border-bottom: 1px solid var(--ssp-brand-text);
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-mic {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	width: auto;
+	height: 42px;
+	padding: 0 12px;
+	font-size: 13px;
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-mic .sitestaffr-panel-icon {
+	color: var(--ssp-brand-text);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-send-btn {
+	width: 42px;
+	height: 42px;
+}
+
+/* The launcher follows the look's corners (Neon keeps its own skin). */
+#sitestaffr-widget[data-ssp-look="concierge"]:not(.sitestaffr-theme-neon) .sitestaffr-widget-button {
+	border-radius: min(var(--ss-radius, 2px), 10px);
+}
+
+@media (max-width: 480px) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-input-area {
+		padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+	}
+
+	html[data-ss-keyboard] .sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-input-area {
+		padding-bottom: 12px;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-chat-textarea {
+		font-size: 16px;
+	}
+}
+
+/* On the narrowest phones the "Speak" word squeezed the message line until its placeholder wrapped and
+   the box scrolled (#582). The mic keeps its icon and its aria-label; the word goes. */
+@media (max-width: 360px) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-mic {
+		justify-content: center;
+		gap: 0;
+		width: 42px;
+		padding: 0;
+		font-size: 0;
+	}
+}
+
+/* Call screen: no orb. A small-caps status, the assistant's words large in the site's face, the visitor's
+   quiet beneath, and small ruled controls. Same markup and hooks as every look (Phase 3), restyled only. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"][data-ssp-screen="call"] .sitestaffr-panel-call {
+	align-items: stretch;
+	padding: 26px 24px 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-orb {
+	display: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-status {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 16px;
+	font-size: 12.5px;
+	font-weight: 500;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--ssp-brand-text);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-status::before {
+	content: "";
+	flex: none;
+	width: 24px;
+	height: 24px;
+	background: var(--ssp-brand-text);
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z'/%3E%3Cpath d='M19 10v2a7 7 0 0 1-14 0v-2'/%3E%3Cpath d='M12 19v3'/%3E%3C/svg%3E") center / contain no-repeat;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z'/%3E%3Cpath d='M19 10v2a7 7 0 0 1-14 0v-2'/%3E%3Cpath d='M12 19v3'/%3E%3C/svg%3E") center / contain no-repeat;
+	animation: ssp-concierge-blink 1.6s infinite;
+}
+
+
+@keyframes ssp-concierge-blink {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-status::before {
+		animation: none;
+	}
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-captions {
+	padding: 0;
+	margin: 0 0 14px;
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-caption.is-ai {
+	margin-bottom: 14px;
+	font-family: var(--ssp-head);
+	font-size: 25px;
+	line-height: 1.28;
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-caption.is-visitor {
+	font-size: 15px;
+	line-height: 1.5;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-caption b {
+	margin-bottom: 4px;
+	font-size: 10.5px;
+	font-weight: 400;
+	letter-spacing: 0.16em;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-notepad {
+	padding: 10px 0 4px;
+	background: transparent;
+	border: 0;
+	border-top: 1px solid var(--ssp-line);
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-note-head b {
+	font-family: var(--ssp-head);
+	font-size: 17px;
+	font-weight: 400;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-notepad dl > div {
+	border-top: 1px dotted var(--ssp-line);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-controls {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+	box-sizing: border-box;
+	width: calc(100% + 48px);
+	margin: auto -24px 0;
+	padding: 14px 24px calc(18px + env(safe-area-inset-bottom, 0px));
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-btn {
+	flex-direction: row;
+	justify-content: center;
+	gap: 8px;
+	padding: 12px;
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius-sm);
+	background: var(--ssp-card);
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-btn > .sitestaffr-panel-icon {
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	background: none;
+	color: var(--ssp-brand-text);
+	border-radius: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-btn small {
+	font-size: 14px;
+	color: inherit;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-btn.is-on {
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-btn.is-on > .sitestaffr-panel-icon {
+	background: none;
+	color: inherit;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-btn.is-end {
+	grid-column: span 2;
+	padding: 14px;
+	border: 0;
+	background: var(--ssp-ink);
+	color: var(--ssp-surface);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-btn.is-end > .sitestaffr-panel-icon {
+	background: none;
+	color: inherit;
+	transform: rotate(135deg);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call-btn.is-end small {
+	font-size: 12.5px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+/* === WORKSHOP === */
+
+/* Big, high-contrast, arm's-length. It starts dark (the look's Background value), but every rule below
+   reads the surface tokens, so Light and Tinted work too. Scoped to the look; no other look sees it. */
+
+/* Header: a plain bar, a square mark, the name in capitals, then the brand status strip. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-header {
+	gap: 12px;
+	padding: 16px 12px 14px 16px;
+	background: var(--ssp-surface);
+	border-bottom: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-header::before {
+	display: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-mark {
+	width: 44px;
+	height: 44px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-chat-header-identity {
+	min-width: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-chat-header-title {
+	font-size: 18px;
+	font-weight: 800;
+	line-height: 1.1;
+	letter-spacing: 0.01em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* The AI disclosure stays whole and literal (#250); the hours live in the strip below. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-chat-header-subtitle {
+	margin-top: 3px;
+	font-size: 11.5px;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-live {
+	display: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-status {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+	padding: 9px 16px;
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+	font-size: 12.5px;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	line-height: 1.3;
+	text-transform: uppercase;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-status i {
+	flex: none;
+	box-sizing: border-box;
+	width: 8px;
+	height: 8px;
+	border: 2px solid currentColor;
+	border-radius: 50%;
+}
+
+/* Lit while open, hollow while closed. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-status.is-open i {
+	background: currentColor;
+	animation: ssp-workshop-blink 1.6s infinite;
+}
+
+@keyframes ssp-workshop-blink {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-status.is-open i {
+		animation: none;
+	}
+}
+
+/* First screen: two big tiles, a jump-to grid, the hours. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-start {
+	padding: 16px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-modes {
+	grid-template-columns: 1fr;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-mode {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	column-gap: 16px;
+	align-items: center;
+	padding: 18px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-mode .sitestaffr-panel-icon {
+	grid-row: span 2;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-mode b {
+	font-size: 23px;
+	font-weight: 800;
+	line-height: 1;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-mode small {
+	margin-top: 3px;
+	font-size: 13.5px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-label {
+	margin: 18px 0 10px;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-jumps {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-jump {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 10px;
+	box-sizing: border-box;
+	min-height: 86px;
+	margin: 0;
+	padding: 14px;
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius);
+	background: var(--ssp-card);
+	color: var(--ssp-ink);
+	font-family: inherit;
+	font-size: 14.5px;
+	font-weight: 700;
+	line-height: 1.25;
+	text-align: left;
+	text-decoration: none;
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-jump .sitestaffr-panel-icon {
+	color: var(--ssp-brand-text);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-jump:hover,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-jump:focus-visible {
+	border-color: var(--ssp-brand);
+	outline: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-jump:focus-visible {
+	outline: 2px solid var(--ssp-brand-text);
+	outline-offset: 2px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-hours-block {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin-top: auto;
+	padding-top: 16px;
+	font-size: 13.5px;
+	font-weight: 600;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-hours-block .sitestaffr-panel-icon {
+	flex: none;
+	margin-top: 2px;
+	color: var(--ssp-brand-text);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-hours-block small {
+	display: block;
+	font-size: 10.5px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--ssp-muted);
+}
+
+/* Conversation: big bubbles. No colored left edge on the assistant's (Mario's ruling, #504). */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-chat-message {
+	max-width: 86%;
+	padding: 12px 14px;
+	font-size: 15px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-chat-message--assistant {
+	border: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-chat-message--visitor {
+	font-weight: 600;
+}
+
+/* Contact card: a work order. A brand title bar, a two-column grid of what was taken down, a big button. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-card {
+	padding: 0;
+	overflow: hidden;
+	border: 2px solid var(--ssp-brand);
+	box-shadow: none;
+	background: var(--ssp-card);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-card-head {
+	justify-content: space-between;
+	margin: 0;
+	padding: 9px 14px;
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+	font-size: 12.5px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-card-head > .sitestaffr-panel-icon {
+	display: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-card-step {
+	font-weight: 700;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-card dl {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1px;
+	background: var(--ssp-line);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-card dl > div {
+	display: block;
+	padding: 10px 14px;
+	border-top: 0;
+	background: var(--ssp-card);
+	font-size: 14px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-card dl > div:last-child:nth-child(odd) {
+	grid-column: 1 / -1;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-card dt {
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-card dd {
+	margin-top: 2px;
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-card-actions {
+	gap: 8px;
+	padding: 10px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-go,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-plain,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-edit {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	box-sizing: border-box;
+	min-height: 56px;
+	margin: 0;
+	font-size: 15px;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-card > .sitestaffr-panel-go {
+	width: auto;
+	margin: 10px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-edit {
+	padding: 0 16px;
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius-sm);
+	color: var(--ssp-ink);
+	font-size: 13px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-fine {
+	margin: 0;
+	padding: 0 14px 10px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-card.is-confirmed .sitestaffr-panel-card-actions {
+	padding: 10px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-card.is-confirmed .sitestaffr-panel-edit {
+	flex: 1;
+}
+
+/* Composer: a tall field, a brand mic, a quiet send. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-chat-input-area {
+	padding: 12px;
+	background: var(--ssp-surface);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-chat-char-count {
+	background: var(--ssp-surface);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-chat-textarea {
+	min-height: 50px;
+	padding: 14px;
+	background: var(--ssp-card);
+	border-radius: var(--ssp-radius-sm);
+	font-size: 15px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-chat-send-btn,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-mic {
+	width: 50px;
+	height: 50px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-mic {
+	border: 0;
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-chat-send-btn {
+	background: var(--ssp-soft);
+	color: var(--ssp-ink);
+}
+
+/* The launcher is a pill: the icon, what to do, and whether anyone is in. Neon keeps its own skin. */
+#sitestaffr-widget[data-ssp-look="workshop"]:not(.sitestaffr-theme-neon) .sitestaffr-widget-button {
+	width: auto;
+	min-width: var(--widget-size, 60px);
+	/* The state icons are stacked and centered by the base rule; here they sit in a slot on the left. */
+	padding: 0 18px 0 calc(16px + var(--widget-icon-size, 24px) + 12px);
+	border-radius: min(var(--ss-radius, 2px), 10px);
+}
+
+#sitestaffr-widget[data-ssp-look="workshop"]:not(.sitestaffr-theme-neon) .sitestaffr-widget-button .sitestaffr-icon {
+	left: calc(16px + var(--widget-icon-size, 24px) / 2);
+}
+
+#sitestaffr-widget[data-ssp-look="workshop"] .sitestaffr-widget-pill {
+	display: none;
+	text-align: left;
+}
+
+#sitestaffr-widget[data-ssp-look="workshop"]:not(.sitestaffr-theme-neon) .sitestaffr-widget-pill {
+	display: block;
+}
+
+#sitestaffr-widget[data-ssp-look="workshop"] .sitestaffr-widget-pill b {
+	display: block;
+	font-size: 15px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	line-height: 1.2;
+	text-transform: uppercase;
+}
+
+#sitestaffr-widget[data-ssp-look="workshop"] .sitestaffr-widget-pill small {
+	display: block;
+	font-size: 11.5px;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+#sitestaffr-widget[data-ssp-look="workshop"] .sitestaffr-widget-pill small[hidden] {
+	display: none;
+}
+
+@media (max-width: 480px) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-chat-input-area {
+		padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+	}
+
+	html[data-ss-keyboard] .sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-chat-input-area {
+		padding-bottom: 12px;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-start {
+		padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+	}
+}
+
+/* Call screen, at arm's length: a large timer, big level bars, big labelled buttons. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"][data-ssp-screen="call"] .sitestaffr-panel-call {
+	align-items: stretch;
+	padding: 18px 18px 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-orb {
+	display: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-timer {
+	flex: none;
+	text-align: center;
+	font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+	font-size: 42px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	line-height: 1.1;
+	font-variant-numeric: tabular-nums;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-bars {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	height: 84px;
+	margin: 6px 0 4px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-bars i {
+	width: 9px;
+	height: 42%;
+	border-radius: 3px;
+	background: var(--ssp-brand);
+	transform-origin: center;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-bars i:nth-child(4n + 1) { height: 78%; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-bars i:nth-child(4n + 2) { height: 58%; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-bars i:nth-child(4n + 3) { height: 96%; }
+
+@keyframes ssp-workshop-bar {
+	0%, 100% { transform: scaleY(1); }
+	50% { transform: scaleY(0.45); }
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call[data-call-state="listening"] .sitestaffr-panel-bars i,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call[data-call-state="speaking"] .sitestaffr-panel-bars i {
+	animation: ssp-workshop-bar 1.1s ease-in-out infinite;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-bars i:nth-child(3n) { animation-delay: 0.2s; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-bars i:nth-child(3n + 1) { animation-delay: 0.45s; }
+
+@media (prefers-reduced-motion: reduce) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-bars i {
+		animation: none !important;
+	}
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-status {
+	margin: 0 0 12px;
+	text-align: center;
+	font-size: 12.5px;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-captions {
+	padding: 12px 14px 2px;
+	font-size: 15px;
+	background: var(--ssp-card);
+	border: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-notepad {
+	border: 2px solid var(--ssp-brand);
+	border-radius: var(--ssp-radius);
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-note-head {
+	font-size: 12.5px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-note-head span {
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-controls {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+	box-sizing: border-box;
+	width: calc(100% + 36px);
+	margin: auto -18px 0;
+	padding: 14px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-btn {
+	flex-direction: row;
+	justify-content: center;
+	gap: 8px;
+	box-sizing: border-box;
+	min-height: 56px;
+	padding: 14px;
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius-sm);
+	background: var(--ssp-card);
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-btn > .sitestaffr-panel-icon {
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	background: none;
+	border-radius: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-btn small {
+	font-size: 13.5px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: inherit;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-btn.is-on {
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-btn.is-on > .sitestaffr-panel-icon {
+	background: none;
+	color: inherit;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-btn.is-end {
+	grid-column: span 2;
+	min-height: 64px;
+	border: 0;
+	background: #d63b30;
+	color: #ffffff;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-btn.is-end > .sitestaffr-panel-icon {
+	background: none;
+	color: inherit;
+	transform: rotate(135deg);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-btn.is-end small {
+	font-size: 15px;
+}
+
+/* On a desktop the panel is at most 640px tall, and the timer, bars, captions and three notepad rows did not
+   fit above the buttons: "What I've noted" ran 65px under them (Phase 8 screenshots). The level bars give
+   way first (60px down to 24px), the timer is a size smaller and the buttons sit a little tighter. Phones have
+   the full screen. */
+@media (min-width: 481px) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"][data-ssp-screen="call"] .sitestaffr-panel-call {
+		padding-top: 12px;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-timer {
+		font-size: 32px;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-bars {
+		flex: 0 1 60px;
+		height: auto;
+		min-height: 24px;
+		margin: 2px 0;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-status {
+		margin-bottom: 6px;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-controls {
+		padding-top: 10px;
+		padding-bottom: 12px;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-btn {
+		min-height: 48px;
+		padding: 10px 14px;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-btn.is-end {
+		min-height: 52px;
+	}
+}
+
+/* === FORM SURFACES === */
+
+/* The Guided Forms card (.sitestaffr-onboarding-card) and its "You're all set" finish screen, in every look.
+   They live inside .sitestaffr-button-container, which carries the data-ssp-* attributes only while the
+   redesign is on, so every rule here is gated by [data-ssp-look] and the 1.59 card is untouched.
+   (A button with a Guided Form opens straight into its conversation and does not use the new panel shell,
+   decision 8, so the card is styled where it is rather than inside the panel.) The contact card a text
+   chat shows is styled with each look above; the brand tokens come from the base stylesheet's contrast rule. */
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-card {
+	--ssp-brand: var(--ss-accent);
+	--ssp-on-brand: var(--ss-on-accent);
+	--ssp-brand-text: var(--ss-accent-text);
+	--ssp-radius: var(--ss-radius, 12px);
+	--ssp-radius-sm: min(var(--ssp-radius), 10px);
+	--ssp-radius-lg: min(calc(var(--ssp-radius) * 1.4 + 2px), 28px);
+	--ssp-surface: color-mix(in srgb, var(--ssp-brand) 3.5%, #ffffff);
+	--ssp-card: #ffffff;
+	--ssp-soft: color-mix(in srgb, var(--ssp-brand) 8%, #ffffff);
+	--ssp-ink: #15191e;
+	--ssp-muted: #5e6670;
+	--ssp-line: rgba(0, 0, 0, 0.1);
+
+	background: var(--ssp-surface);
+	color: var(--ssp-ink);
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius-lg);
+	box-shadow: 0 24px 64px rgba(10, 15, 20, 0.3), 0 4px 14px rgba(10, 15, 20, 0.12);
+}
+
+.sitestaffr-button-container[data-ssp-bg="tinted"] .sitestaffr-onboarding-card {
+	--ssp-surface: color-mix(in srgb, var(--ssp-brand) 5%, #fbfaf8);
+	--ssp-card: color-mix(in srgb, #ffffff 60%, var(--ssp-surface));
+	--ssp-soft: color-mix(in srgb, var(--ssp-brand) 10%, var(--ssp-surface));
+	--ssp-line: rgba(0, 0, 0, 0.12);
+}
+
+.sitestaffr-button-container[data-ssp-bg="dark"] .sitestaffr-onboarding-card {
+	--ssp-surface: color-mix(in srgb, var(--ssp-brand) 14%, #10161c);
+	--ssp-card: color-mix(in srgb, #ffffff 7%, var(--ssp-surface));
+	--ssp-soft: color-mix(in srgb, #ffffff 13%, var(--ssp-surface));
+	--ssp-ink: #f1f4f6;
+	--ssp-muted: #a9b4bd;
+	--ssp-line: rgba(255, 255, 255, 0.13);
+	--ssp-brand-text: color-mix(in srgb, var(--ssp-brand) 32%, #ffffff);
+	box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.sitestaffr-button-container[data-ssp-font="site"] .sitestaffr-onboarding-card {
+	font-family: var(--ss-site-font, inherit);
+}
+
+.sitestaffr-button-container[data-ssp-font="clean"] .sitestaffr-onboarding-card {
+	font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* The docked card (beside a text chat) keeps the shell's corners and a lighter shadow. */
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-card.is-docked {
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+}
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-card > h3 {
+	color: var(--ssp-ink);
+	font-size: 17px;
+	font-weight: 700;
+	letter-spacing: 0;
+	text-transform: none;
+}
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-close {
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-close:hover,
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-close:focus-visible {
+	background: var(--ssp-soft);
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-status {
+	background: var(--ssp-soft);
+}
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-status__label {
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-field {
+	border-bottom-color: var(--ssp-line);
+}
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-label {
+	color: var(--ssp-muted);
+	font-weight: 400;
+}
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-value {
+	color: var(--ssp-ink);
+	font-weight: 600;
+}
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-field.is-current {
+	background: var(--ssp-soft);
+	border-radius: var(--ssp-radius-sm);
+}
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-option {
+	border-color: var(--ssp-line);
+	border-radius: var(--ssp-radius-sm);
+	background: var(--ssp-card);
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-option.is-selected {
+	border-color: transparent;
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+}
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-success__title {
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-success__text {
+	color: var(--ssp-muted);
+}
+
+/* Front Desk: the brand rule across the top, like the panel header; the finish keeps the green check. */
+.sitestaffr-button-container[data-ssp-look="front_desk"] .sitestaffr-onboarding-card {
+	border-top: 4px solid var(--ssp-brand);
+}
+
+.sitestaffr-button-container[data-ssp-look="front_desk"] .sitestaffr-onboarding-success__icon {
+	color: #1f9d55;
+}
+
+/* Concierge: a ruled form with dotted leaders, a double rule round it, the site's face for headings. */
+.sitestaffr-button-container[data-ssp-look="concierge"] .sitestaffr-onboarding-card {
+	border: 3px double var(--ssp-ink);
+	border-radius: var(--ssp-radius-sm);
+	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+	background: var(--ssp-card);
+}
+
+.sitestaffr-button-container[data-ssp-look="concierge"] .sitestaffr-onboarding-card > h3 {
+	font-size: 21px;
+	font-weight: 400;
+}
+
+.sitestaffr-button-container[data-ssp-look="concierge"] .sitestaffr-onboarding-field {
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 8px;
+	padding: 7px 0;
+	border-bottom: 0;
+}
+
+.sitestaffr-button-container[data-ssp-look="concierge"] .sitestaffr-onboarding-label {
+	display: flex;
+	flex: 1;
+	align-items: baseline;
+	gap: 8px;
+	margin-right: 0;
+}
+
+.sitestaffr-button-container[data-ssp-look="concierge"] .sitestaffr-onboarding-label::after {
+	content: "";
+	flex: 1;
+	border-bottom: 1px dotted var(--ssp-muted);
+	opacity: 0.55;
+}
+
+.sitestaffr-button-container[data-ssp-look="concierge"] .sitestaffr-onboarding-field.is-current {
+	margin: 0 -10px;
+	padding-left: 10px;
+	padding-right: 10px;
+	background: var(--ssp-soft);
+	border-radius: 0;
+}
+
+.sitestaffr-button-container[data-ssp-look="concierge"] .sitestaffr-onboarding-success {
+	border-top: 1px solid var(--ssp-line);
+}
+
+.sitestaffr-button-container[data-ssp-look="concierge"] .sitestaffr-onboarding-success__title {
+	font-size: 24px;
+	font-weight: 400;
+}
+
+/* Workshop: a work order. A brand title bar, stacked cells (small label over a bold value), square corners. */
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-card {
+	padding: 0 0 8px;
+	border: 2px solid var(--ssp-brand);
+	background: var(--ssp-card);
+	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+}
+
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-card > h3 {
+	display: flex;
+	align-items: center;
+	box-sizing: border-box;
+	min-height: 44px;
+	margin: 0 0 8px;
+	padding: 0 52px 0 14px;
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+	font-size: 12.5px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+/* A brand tab: it merges into the title bar, and still reads as a button once the bar is gone (the finish screen). */
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-close {
+	margin-right: 4px;
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+	border-radius: var(--ssp-radius-sm);
+}
+
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-close:hover,
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-close:focus-visible {
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+	filter: brightness(0.9);
+}
+
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-status {
+	margin: 0 14px 8px;
+}
+
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-field {
+	display: block;
+	margin: 0 14px;
+	padding: 10px 0;
+}
+
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-label {
+	display: block;
+	margin: 0;
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-value {
+	display: block;
+	margin-top: 2px;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.3;
+	text-align: left;
+}
+
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-value.is-render-email,
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-value.is-render-phone,
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-value.is-render-url {
+	font-size: 14px;
+}
+
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-field.is-current {
+	margin: 0 4px;
+	padding-left: 10px;
+	padding-right: 10px;
+	border-radius: var(--ssp-radius-sm);
+}
+
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-option {
+	padding: 8px 14px;
+	font-weight: 700;
+}
+
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-success {
+	padding: 20px 14px 12px;
+}
+
+.sitestaffr-button-container[data-ssp-look="workshop"] .sitestaffr-onboarding-success__title {
+	font-size: 1.4rem;
+	font-weight: 800;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}
+
+/* === PHONES (every look) === */
+
+/* The base stylesheet already makes the panel full screen below 480px, scroll-locks the page,
+   follows the visual viewport and drops the inset while the keyboard is up. Only the composer needs
+   to join in: it is a bar now, not a floating field, so it clears the home indicator itself. */
+@media (max-width: 480px) {
+	.sitestaffr-chat-panel.sitestaffr-panel {
+		border-radius: 0;
+		box-shadow: 0 0 0 100vmax var(--ssp-surface);
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel:not(.is-open) {
+		box-shadow: none;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-input-area {
+		margin: 0;
+		padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+	}
+
+	html[data-ss-keyboard] .sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-input-area {
+		margin: 0;
+		padding-bottom: 12px;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-textarea,
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-edit-input {
+		font-size: 16px;
+	}
+
+	/* The AI line and the hours share one row beside the mark and two buttons: keep it whole. */
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-header {
+		gap: 10px;
+		padding-left: 16px;
+	}
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-header-subtitle {
+		font-size: 12px;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start {
+		padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+	}
+}
+
+/* === CALL SCREEN (Front Desk) === */
+
+/* Phase 3 of #395: Talk (and the mic in the message box) run the call inside the panel. The orb,
+   status, captions, the notepad and Mute / Type / End follow the gallery's Front Desk voice tile
+   (.a-voice, .a-orb, .a-cap, .a-vctl). It uses only the shared tokens, so every background and brand
+   works, and the contact card the call leaves behind is the Front Desk card styled above. */
+
+.sitestaffr-chat-panel.sitestaffr-panel:not([data-ssp-screen="call"]) .sitestaffr-panel-call {
+	display: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="call"] .sitestaffr-chat-messages,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="call"] .sitestaffr-chat-char-count,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="call"] .sitestaffr-chat-input-area {
+	display: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="call"] .sitestaffr-panel-call {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	flex: 1;
+	min-height: 0;
+	padding: 16px 20px 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	outline: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call [hidden] {
+	display: none;
+}
+
+/* The orb: three brand rings round a solid core. They breathe while someone is talking. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-orb {
+	--ssp-orb: 96px;
+	position: relative;
+	flex: none;
+	width: var(--ssp-orb);
+	height: var(--ssp-orb);
+	margin: 0 0 8px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-orb > span {
+	position: absolute;
+	border-radius: 50%;
+	background: var(--ssp-brand);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-orb > span:nth-child(1) { inset: 0; opacity: 0.1; }
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-orb > span:nth-child(2) { inset: 7%; opacity: 0.18; }
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-orb > span:nth-child(3) { inset: 12%; opacity: 0.3; }
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-orb-core {
+	position: absolute;
+	inset: 16%;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-orb-core .sitestaffr-panel-icon {
+	width: 54%;
+	height: 54%;
+}
+
+@keyframes ssp-call-pulse {
+	0%, 100% { transform: scale(1); opacity: 1; }
+	50% { transform: scale(1.08); opacity: 0.75; }
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call[data-call-state="listening"] .sitestaffr-panel-orb > span:nth-child(-n+2),
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call[data-call-state="speaking"] .sitestaffr-panel-orb > span:nth-child(-n+2) {
+	animation: ssp-call-pulse 2.6s ease-in-out infinite;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call[data-call-state="speaking"] .sitestaffr-panel-orb > span:nth-child(-n+2) {
+	animation-duration: 1.3s;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call[data-call-state="listening"] .sitestaffr-panel-orb > span:nth-child(2) {
+	animation-delay: 0.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-orb > span {
+		animation: none !important;
+	}
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call-status {
+	flex: none;
+	margin: 0 0 10px;
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--ssp-brand-text);
+}
+
+/* Captions: the last line from each side, the assistant's first. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-captions {
+	flex: none;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 10px 16px 2px;
+	margin: 0 0 10px;
+	background: var(--ssp-card);
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius);
+	font-size: 14.5px;
+	line-height: 1.45;
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-caption {
+	margin: 0 0 8px;
+	overflow-wrap: anywhere;
+}
+
+/* The whole line, never an ellipsis (#510): a long answer takes the height it needs, and the call screen
+   scrolls (its buttons stay put) only when it truly outgrows the panel. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-caption-text {
+	display: block;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-caption.is-visitor {
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-caption b {
+	display: block;
+	margin-bottom: 2px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--ssp-muted);
+}
+
+/* The details card on a call: it appears at the read-back and is never listed before that (#510). */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notepad {
+	flex: none;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 9px 16px 4px;
+	background: var(--ssp-card);
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius);
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-note-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	margin-bottom: 4px;
+	font-size: 15px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-note-head span {
+	font-size: 12px;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notepad dl {
+	margin: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notepad dl > div {
+	display: grid;
+	grid-template-columns: 66px 1fr;
+	gap: 8px;
+	align-items: center;
+	padding: 5px 0;
+	border-top: 1px dashed var(--ssp-line);
+	font-size: 13.5px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notepad dt {
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notepad dd {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	min-width: 0;
+	margin: 0;
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-note-ck {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 17px;
+	height: 17px;
+	border-radius: 50%;
+	background: #1f9d55;
+	color: #ffffff;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-note-ck .sitestaffr-panel-icon {
+	width: 11px;
+	height: 11px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notepad em {
+	font-style: normal;
+	font-weight: 400;
+	color: var(--ssp-muted);
+}
+
+/* Mute / Type / End. Sticky, so a long caption never pushes End out of reach. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call-controls {
+	position: sticky;
+	bottom: 0;
+	flex: none;
+	display: flex;
+	justify-content: center;
+	gap: 24px;
+	box-sizing: border-box;
+	width: calc(100% + 40px);
+	margin: auto -20px 0;
+	padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+	background: var(--ssp-surface);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call-btn {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	box-shadow: none;
+	font-family: inherit;
+	color: var(--ssp-ink);
+	cursor: pointer;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call-btn > .sitestaffr-panel-icon {
+	box-sizing: content-box;
+	width: 22px;
+	height: 22px;
+	padding: 17px;
+	border-radius: 50%;
+	background: color-mix(in srgb, var(--ssp-ink) 7%, var(--ssp-surface));
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call-btn small {
+	font-size: 12px;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call-btn.is-on > .sitestaffr-panel-icon {
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call-btn.is-end > .sitestaffr-panel-icon {
+	background: #d93a3a;
+	color: #ffffff;
+	transform: rotate(135deg);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-call-btn:focus-visible {
+	outline: 2px solid var(--ssp-brand-text);
+	outline-offset: 2px;
+	border-radius: 12px;
+}
+
+/* The card a finished call leaves: no Edit, a plain way to say it is wrong. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-tell {
+	display: block;
+	margin: 10px auto 0;
+	padding: 4px 6px;
+	border: 0;
+	background: none;
+	box-shadow: none;
+	font-family: inherit;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--ssp-brand-text);
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-tell:focus-visible {
+	outline: 2px solid var(--ssp-brand-text);
+	outline-offset: 2px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-card.is-confirmed .sitestaffr-panel-tell {
+	display: none;
+}
+
+@media (max-width: 480px) {
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-orb {
+		--ssp-orb: 168px;
+		margin-top: 8px;
+	}
+}
+
+@media (max-width: 480px) and (max-height: 700px) {
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-orb {
+		--ssp-orb: 120px;
+	}
+}
+
+/* === MATCH MY SITE === */
+
+/* "Font: Like my site". --ss-site-font is emitted only when the theme names a font, so a theme
+   that does not falls back to the page's own inherited font. "Clean" never sets this attribute. */
+[data-ssp-font="site"] {
+	font-family: var(--ss-site-font, inherit);
+}
+
+/* === TALK NOW === */
+
+/* Voice first: one big Talk button, typing as the way out. The First screen control picks this screen on any
+   look and lays it out with the panel's own tokens; the Talk Now look alone turns it dark (below). The orb, title,
+   button and fine print share the column: the auto margins on the orb and the fine print center the group between
+   the header and the foot. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start.sitestaffr-panel-start--voice {
+	align-items: center;
+	text-align: center;
+	padding: 18px 22px 18px;
+}
+
+/* The padding above would drop the safe area the phone rule adds; the composer is hidden on this screen. */
+@media (max-width: 480px) {
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start.sitestaffr-panel-start--voice {
+		padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+	}
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-hero-orb {
+	position: relative;
+	flex: none;
+	width: 190px;
+	height: 190px;
+	margin: auto 0 24px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-hero-orb span {
+	position: absolute;
+	border-radius: 50%;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-hero-orb span:nth-child(1) {
+	inset: -26px;
+	background: radial-gradient(circle, var(--ssp-brand), transparent 66%);
+	opacity: 0.5;
+	animation: ssp-hero-pulse 3s ease-in-out infinite;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-hero-orb span:nth-child(2) {
+	inset: 0;
+	background: radial-gradient(circle at 34% 30%, #ffffff 0%, color-mix(in srgb, var(--ssp-brand) 45%, #ffffff) 20%, var(--ssp-brand) 58%, color-mix(in srgb, var(--ssp-brand) 60%, #000000) 100%);
+	box-shadow: 0 0 60px color-mix(in srgb, var(--ssp-brand) 55%, transparent);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-hero-orb span:nth-child(3) {
+	inset: 22%;
+	border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+@keyframes ssp-hero-pulse {
+	0%, 100% { transform: scale(1); opacity: 0.5; }
+	50% { transform: scale(1.06); opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-hero-orb span {
+		animation: none;
+	}
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-hero-title {
+	margin: 0 0 8px;
+	font-family: inherit;
+	font-size: 30px;
+	font-weight: 700;
+	line-height: 1.1;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-tagline {
+	max-width: 290px;
+	margin: 0 0 22px;
+	font-size: 15px;
+	line-height: 1.5;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-talk {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 56px;
+	margin: 0;
+	padding: 16px;
+	border: 0;
+	border-radius: var(--ssp-radius-lg);
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+	font-family: inherit;
+	font-size: 17px;
+	font-weight: 800;
+	line-height: 1.2;
+	box-shadow: 0 12px 30px color-mix(in srgb, var(--ssp-brand) 40%, transparent);
+	cursor: pointer;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-type-link {
+	margin: 14px 0 0;
+	padding: 6px 8px;
+	border: 0;
+	background: none;
+	box-shadow: none;
+	font-family: inherit;
+	font-size: 14.5px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--ssp-ink);
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-fine-print {
+	margin: auto 0 0;
+	padding-top: 16px;
+	font-size: 11.5px;
+	line-height: 1.4;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-talk:focus-visible,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-type-link:focus-visible,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-back:focus-visible {
+	outline: 2px solid var(--ssp-brand-text);
+	outline-offset: 2px;
+}
+
+/* Desktop: the voice-first screen is as tall as a conversation, like the gallery's. */
+@media (min-width: 481px) {
+	.sitestaffr-chat-panel.sitestaffr-panel:has(.sitestaffr-panel-start--voice)[data-ssp-screen="start"] {
+		height: var(--chat-panel-height);
+	}
+}
+
+/* "Talk instead": the way back to the call from the text screen. Nowhere else. A round mic button: as a labelled
+   pill it took a third of the header, cutting the name and pushing the AI line (which wraps, never clips) to three
+   rows. Its label stays for screen readers and as the tooltip. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-back {
+	display: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="text"] .sitestaffr-panel-back {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0;
+	flex: none;
+	width: 34px;
+	height: 34px;
+	margin: 0 2px 0 0;
+	padding: 0;
+	border: 0;
+	border-radius: 999px;
+	background: var(--ssp-soft);
+	box-shadow: none;
+	font-family: inherit;
+	font-size: 12.5px;
+	font-weight: 700;
+	line-height: 1.2;
+	white-space: nowrap;
+	color: var(--ssp-ink);
+	cursor: pointer;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="text"] .sitestaffr-panel-back .sitestaffr-panel-icon {
+	width: 18px;
+	height: 18px;
+	color: var(--ssp-brand-text);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-back span {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* The Talk Now look, voice-first screens only (its first screen and its call): a dark stage lit by the brand,
+   the header floating on it. The text screen stays on the owner's Background. */
+.sitestaffr-chat-panel.sitestaffr-panel:is([data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"], [data-ssp-look="talk_now"][data-ssp-screen="start"]:has(.sitestaffr-panel-start--voice)) {
+	--ssp-surface: #0c0e11;
+	--ssp-card: color-mix(in srgb, #ffffff 8%, #0c0e11);
+	--ssp-soft: color-mix(in srgb, #ffffff 14%, #0c0e11);
+	--ssp-ink: #ffffff;
+	--ssp-muted: #d5dce2;
+	--ssp-line: rgba(255, 255, 255, 0.18);
+	--ssp-brand-text: color-mix(in srgb, var(--ssp-brand) 32%, #ffffff);
+	background: radial-gradient(120% 70% at 50% 18%, color-mix(in srgb, var(--ssp-brand) 28%, #0c0e11) 0%, #0c0e11 72%);
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel:is([data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"], [data-ssp-look="talk_now"][data-ssp-screen="start"]:has(.sitestaffr-panel-start--voice)) .sitestaffr-panel-header {
+	background: transparent;
+	border-bottom: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel:is([data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"], [data-ssp-look="talk_now"][data-ssp-screen="start"]:has(.sitestaffr-panel-start--voice)) .sitestaffr-panel-header::before {
+	display: none;
+}
+
+/* The call screen on that stage: the notepad is the loudest thing on it, a white card the eye goes to. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"] .sitestaffr-panel-orb {
+	--ssp-orb: 128px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"] .sitestaffr-panel-orb > span:nth-child(1) { opacity: 0.2; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"] .sitestaffr-panel-orb > span:nth-child(2) { opacity: 0.32; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"] .sitestaffr-panel-orb > span:nth-child(3) { opacity: 0.5; }
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"] .sitestaffr-panel-call-status {
+	font-size: 12.5px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"] .sitestaffr-panel-notepad {
+	--ssp-card: #ffffff;
+	--ssp-ink: #15191e;
+	--ssp-muted: #5e6670;
+	--ssp-line: rgba(0, 0, 0, 0.14);
+	--ssp-brand-text: var(--ss-accent-text);
+	--ssp-soft: #eef0f2;
+	padding: 14px 16px 8px;
+	border: 0;
+	background: #ffffff;
+	color: #15191e;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"] .sitestaffr-panel-note-head {
+	margin-bottom: 6px;
+	font-size: 16px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"] .sitestaffr-panel-notepad dl > div {
+	padding: 8px 0;
+	font-size: 14.5px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"] .sitestaffr-panel-call-controls {
+	background: transparent;
+}
+
+/* The launcher is a pill that says what to do and that someone is answering. Neon keeps its own skin. */
+#sitestaffr-widget[data-ssp-look="talk_now"]:not(.sitestaffr-theme-neon) .sitestaffr-widget-button {
+	width: auto;
+	min-width: var(--widget-size, 60px);
+	/* The state icons are stacked and centered by the base rule; here they sit in a slot on the left. */
+	padding: 0 20px 0 calc(16px + var(--widget-icon-size, 24px) + 12px);
+	border-radius: 999px;
+}
+
+#sitestaffr-widget[data-ssp-look="talk_now"]:not(.sitestaffr-theme-neon) .sitestaffr-widget-button .sitestaffr-icon {
+	left: calc(16px + var(--widget-icon-size, 24px) / 2);
+}
+
+#sitestaffr-widget[data-ssp-look="talk_now"] .sitestaffr-widget-pill {
+	display: none;
+	text-align: left;
+}
+
+#sitestaffr-widget[data-ssp-look="talk_now"]:not(.sitestaffr-theme-neon) .sitestaffr-widget-pill {
+	display: block;
+}
+
+#sitestaffr-widget[data-ssp-look="talk_now"] .sitestaffr-widget-pill b {
+	display: block;
+	font-size: 15px;
+	font-weight: 800;
+	line-height: 1.2;
+}
+
+#sitestaffr-widget[data-ssp-look="talk_now"] .sitestaffr-widget-pill small {
+	display: block;
+	font-size: 11.5px;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+@media (max-width: 480px) {
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-hero-orb {
+		width: 170px;
+		height: 170px;
+	}
+
+	/* The notepad is the point of the call: a smaller orb leaves it the room. */
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"] .sitestaffr-panel-orb {
+		--ssp-orb: 150px;
+		margin-top: 0;
+	}
+
+}
+
+/* The desktop panel (at most 640px tall) is too short for the 104px orb: it pushed the last notepad row under
+   the buttons (8px, 27px on a 720px window). The standard orb leaves the notepad whole. */
+@media (min-width: 481px) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"] .sitestaffr-panel-orb {
+		--ssp-orb: 92px;
+	}
+}
+
+@media (max-width: 480px) and (max-height: 700px) {
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-hero-orb {
+		width: 120px;
+		height: 120px;
+		margin-bottom: 18px;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="talk_now"][data-ssp-start="voice_first"][data-ssp-screen="call"] .sitestaffr-panel-orb {
+		--ssp-orb: 100px;
+	}
+}
+
+/* === QUICK SHEET === */
+
+/* Main actions: three big rows, the questions as chips, the composer at the foot. The First screen control picks
+   this screen on any look; the Quick Sheet look adds the round header and the pill composer. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start.sitestaffr-panel-start--sheet {
+	padding: 14px 16px 12px;
+}
+
+/* With the composer shown it clears the home indicator itself; without it the rows do. */
+@media (max-width: 480px) {
+	.sitestaffr-chat-panel.sitestaffr-panel:not([data-ssp-can-type="true"]) .sitestaffr-panel-start.sitestaffr-panel-start--sheet {
+		padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+	}
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-acts {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-act {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	box-sizing: border-box;
+	width: 100%;
+	margin: 0;
+	padding: 12px;
+	border: 1px solid transparent;
+	border-radius: var(--ssp-radius);
+	background: color-mix(in srgb, var(--ssp-ink) 5%, var(--ssp-surface));
+	color: var(--ssp-ink);
+	font-family: inherit;
+	text-align: left;
+	text-decoration: none;
+	line-height: 1.3;
+	box-shadow: none;
+	cursor: pointer;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-act:hover {
+	border-color: var(--ssp-brand);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-act:focus-visible,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-chip:focus-visible {
+	outline: 2px solid var(--ssp-brand-text);
+	outline-offset: 2px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-act > span:nth-child(2) {
+	flex: 1;
+	min-width: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-act b {
+	display: block;
+	font-size: 15.5px;
+	font-weight: 700;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-act small {
+	display: block;
+	margin-top: 1px;
+	font-size: 12.5px;
+	color: var(--ssp-muted);
+	overflow-wrap: anywhere;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-act > .sitestaffr-panel-icon {
+	flex: none;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-act-ic {
+	display: grid;
+	place-items: center;
+	flex: none;
+	width: 42px;
+	height: 42px;
+	border-radius: calc(var(--ssp-radius) * 0.7);
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-act.is-talk .sitestaffr-panel-act-ic {
+	background: var(--ssp-ink);
+	color: var(--ssp-surface);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-act.is-main .sitestaffr-panel-act-ic {
+	background: var(--ssp-soft);
+	color: var(--ssp-brand-text);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 14px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-chips .sitestaffr-panel-question.sitestaffr-panel-chip {
+	display: inline-flex;
+	width: auto;
+	max-width: 100%;
+	margin: 0;
+	padding: 8px 12px;
+	border: 1px solid var(--ssp-line);
+	border-radius: 999px;
+	background: var(--ssp-card);
+	color: var(--ssp-ink);
+	font-size: 13px;
+	line-height: 1.3;
+	text-align: left;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-chips .sitestaffr-panel-question.sitestaffr-panel-chip:hover {
+	border-color: var(--ssp-brand);
+}
+
+/* The composer is the foot of this screen for a visitor who can type. Every other first screen hides it until a
+   conversation starts, and a Voice only site has no text chat behind it (Send would throw). */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-start="main_actions"][data-ssp-can-type="true"][data-ssp-screen="start"] .sitestaffr-chat-input-area {
+	display: flex;
+}
+
+/* Out of voice minutes, or the daily voice cap: no screen offers Talk, so a visitor cannot end a live text chat for it. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-can-talk="false"] .sitestaffr-panel-mic,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-can-talk="false"] .sitestaffr-panel-back,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-can-talk="false"] [data-panel-action="talk"],
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-can-talk="false"] [data-panel-action="mic"] {
+	display: none !important;
+}
+
+/* The Quick Sheet look: a round mark, no brand rule across the top, a pill composer with round buttons. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="quick_sheet"] .sitestaffr-panel-header {
+	background: var(--ssp-surface);
+	border-bottom: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="quick_sheet"] .sitestaffr-panel-header::before {
+	display: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="quick_sheet"] .sitestaffr-panel-mark {
+	border-radius: 50%;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="quick_sheet"] .sitestaffr-chat-header-title {
+	font-size: 17px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="quick_sheet"] .sitestaffr-chat-input-area {
+	border-top: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="quick_sheet"] .sitestaffr-chat-textarea {
+	border-radius: var(--ssp-radius-lg);
+	padding: 12px 16px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="quick_sheet"] .sitestaffr-chat-send-btn,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="quick_sheet"] .sitestaffr-panel-mic {
+	border-radius: 50%;
+}
+
+/* === HALF SHEET === */
+
+/* On a phone the Quick Sheet opens to 62% of the screen with a grab handle. Drag the handle up for full screen,
+   down for the sheet again; focusing the message field also goes full screen, so the keyboard never covers it.
+   Nothing here closes it: no layer is painted over the page, a tap on the page does nothing to the sheet, and
+   only the close button closes (Mario, #358). The page behind stays locked by the open-panel rule in
+   sitestaffr-chat-panel.css, the same one the full-screen panel uses. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-grab {
+	display: none;
+}
+
+@media (max-width: 480px) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-phone="sheet"] {
+		top: auto !important;
+		bottom: 0 !important;
+		height: 62vh !important;
+		border-radius: 24px 24px 0 0;
+	}
+
+	/* Only the half sheet animates its height: in the full state the keyboard sets it, and a lag would show. */
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-phone="sheet"]:not([data-ssp-sheet="full"]) {
+		transition: opacity 0.2s ease, transform 0.2s ease, height 0.22s ease;
+	}
+
+	@supports (height: 1dvh) {
+		.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-phone="sheet"] {
+			height: 62dvh !important;
+		}
+	}
+
+	/* The sheet floats over the page it does not cover, so its shadow falls on that page; the full-screen
+	   spill (a page-wide shadow in the panel's own color) belongs to the full state only. */
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-phone="sheet"]:not([data-ssp-sheet="full"]) {
+		box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25);
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-phone="sheet"][data-ssp-sheet="full"] {
+		top: var(--ss-vv-top, 0px) !important;
+		bottom: auto !important;
+		height: var(--ss-vv-height, 100%) !important;
+		border-radius: 0;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-phone="sheet"] .sitestaffr-panel-grab {
+		display: flex;
+		flex: none;
+		justify-content: center;
+		align-items: flex-start;
+		box-sizing: border-box;
+		width: 100%;
+		height: 26px;
+		margin: 0;
+		padding: 10px 0 0;
+		border: 0;
+		border-radius: 24px 24px 0 0;
+		background: var(--ssp-card);
+		box-shadow: none;
+		/* The browser must not scroll the page for a drag that starts on the handle. */
+		touch-action: none;
+		cursor: grab;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-phone="sheet"][data-ssp-look="quick_sheet"] .sitestaffr-panel-grab {
+		background: var(--ssp-surface);
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-phone="sheet"][data-ssp-sheet="full"] .sitestaffr-panel-grab {
+		border-radius: 0;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-phone="sheet"] .sitestaffr-panel-grab i {
+		display: block;
+		width: 44px;
+		height: 5px;
+		border-radius: 3px;
+		background: color-mix(in srgb, var(--ssp-ink) 24%, transparent);
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-phone="sheet"] .sitestaffr-panel-grab:focus-visible {
+		outline: 2px solid var(--ssp-brand-text);
+		outline-offset: -2px;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-phone="sheet"] .sitestaffr-panel-header {
+		padding-top: 8px;
+	}
+}
+
+/* No underlined icons anywhere in the panel (Mario's ruling, restated 2026-10-21, #504): a theme's link,
+   hover or focus underline must never reach a control that carries an icon. Text-only links keep theirs. */
+.sitestaffr-chat-panel.sitestaffr-panel :is(a, button):has(svg),
+.sitestaffr-chat-panel.sitestaffr-panel :is(a, button):has(svg):is(:hover, :focus, :focus-visible) {
+	text-decoration: none;
+}
+
+/* === DETAILS ONLY AS THEY ARE SAVED (#510, mockups 3 and 4 of the 2026-10-21 round) ===
+   Nothing is listed while the visitor talks or types: a quiet check line marks each save in the transcript, the
+   details card appears once at the read-back, and the dividers say where a talk and a typed chat were joined. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notepad[hidden],
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-continue[hidden] {
+	display: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notepad .sitestaffr-panel-note-head {
+	margin-bottom: 2px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-val {
+	min-width: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-card dd {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel dl > div.is-new {
+	background: var(--ssp-soft);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel dl > div.is-new dt {
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notepad dl > div.is-new {
+	margin: 0 -8px;
+	padding-left: 8px;
+	padding-right: 8px;
+	border-radius: var(--ssp-radius-sm);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-tag {
+	flex: none;
+	margin-left: auto;
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--ssp-card);
+	border: 1px solid var(--ssp-line);
+	color: var(--ssp-ink);
+	font-size: 11.5px;
+	font-weight: 700;
+	line-height: 1.5;
+	text-transform: none;
+	letter-spacing: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-hint {
+	margin: 6px 0;
+	font-size: 12.5px;
+	color: var(--ssp-muted);
+	text-align: center;
+}
+
+/* The check line: under the visitor's words in the transcript, under the captions on a call. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-receipt {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	margin: 0;
+	font-size: 12.5px;
+	line-height: 1.35;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-receipt b {
+	color: var(--ssp-ink);
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-receipt.is-removed .sitestaffr-panel-note-ck {
+	background: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-messages .sitestaffr-panel-receipt {
+	align-self: flex-end;
+	max-width: 88%;
+	margin-top: -3px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-captions .sitestaffr-panel-receipt {
+	margin: -3px 0 9px;
+}
+
+/* Where a talk and a typed chat were joined. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-divider {
+	align-self: stretch;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 2px 0;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-divider::before,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-divider::after {
+	content: "";
+	flex: 1;
+	height: 1px;
+	background: var(--ssp-line);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-divider .sitestaffr-panel-icon {
+	flex: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-continue {
+	align-self: center;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: -4px 0 10px;
+	padding: 3px 10px;
+	border-radius: 999px;
+	background: var(--ssp-soft);
+	font-size: 12.5px;
+	font-weight: 600;
+	color: var(--ssp-ink);
+}
+
+/* On a desktop, while the card shows, the orb (Workshop: the level bars) gives way so the card is never under the buttons. */
+@media (min-width: 481px) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="call"][data-ssp-sheet] .sitestaffr-panel-call.has-details .sitestaffr-panel-orb {
+		--ssp-orb: 68px;
+		margin-bottom: 4px;
+	}
+
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call.has-details .sitestaffr-panel-bars {
+		display: none;
+	}
+}
+
+/* Workshop's status line gets the same glyph Concierge has: a microphone while listening, a speaker while talking. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-status {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	font-size: 14px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call-status::before {
+	content: "";
+	flex: none;
+	width: 24px;
+	height: 24px;
+	background: var(--ssp-brand-text);
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z'/%3E%3Cpath d='M19 10v2a7 7 0 0 1-14 0v-2'/%3E%3Cpath d='M12 19v3'/%3E%3C/svg%3E") center / contain no-repeat;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z'/%3E%3Cpath d='M19 10v2a7 7 0 0 1-14 0v-2'/%3E%3Cpath d='M12 19v3'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* === SPEAKING = WAVES (#510, Mario: "I prefer the waves over the speaker") ===
+   Five bars that rise and fall: inside the orb core on Front Desk and Talk Now, and as a 28px row above the status
+   on Concierge and Workshop (where there is no orb), in place of the microphone glyph while the assistant talks. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-wave {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7%;
+	width: 54%;
+	height: 54%;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-wave b {
+	flex: 1;
+	max-width: 14%;
+	height: 100%;
+	border-radius: 999px;
+	background: currentColor;
+	transform: scaleY(0.35);
+	animation: ssp-wave 0.9s ease-in-out infinite;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-wave b:nth-child(2) { animation-delay: 0.15s; }
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-wave b:nth-child(3) { animation-delay: 0.3s; }
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-wave b:nth-child(4) { animation-delay: 0.45s; }
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-wave b:nth-child(5) { animation-delay: 0.6s; }
+
+@keyframes ssp-wave {
+	0%, 100% { transform: scaleY(0.3); }
+	50% { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-wave b { animation: none; transform: scaleY(0.7); }
+}
+
+/* The status-row waves exist only where there is no orb, and only while speaking. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-wave.is-status {
+	display: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call[data-call-state="speaking"] .sitestaffr-panel-wave.is-status,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call[data-call-state="speaking"] .sitestaffr-panel-wave.is-status {
+	display: flex;
+	flex: none;
+	width: 40px;
+	height: 28px;
+	margin: 0 0 6px;
+	align-self: flex-start;
+	color: var(--ssp-brand-text);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call[data-call-state="speaking"] .sitestaffr-panel-wave.is-status {
+	align-self: center;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-call[data-call-state="speaking"] .sitestaffr-panel-call-status::before,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-call[data-call-state="speaking"] .sitestaffr-panel-call-status::before {
+	display: none;
+}
+
+/* === WHEN THE ASSISTANT CANNOT ANSWER (#534) ===
+   An error line with a way forward under it, and the leave-your-details form drawn as each look's own
+   details card. The form is its own screen: it replaces the conversation, or is the first screen. */
+
+.sitestaffr-chat-panel.sitestaffr-panel:not([data-ssp-screen="help"]) .sitestaffr-panel-help,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="help"] .sitestaffr-chat-messages,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="help"] .sitestaffr-chat-char-count,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="help"] .sitestaffr-chat-input-area {
+	display: none;
+}
+
+@media (min-width: 481px) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-screen="help"]:has(.sitestaffr-panel-help.is-start) {
+		height: auto;
+	}
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	padding: 18px;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	outline: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-body {
+	flex: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-intro {
+	margin: 0 0 12px;
+	font-size: 14.5px;
+	line-height: 1.45;
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-form {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-field {
+	display: block;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-field > span {
+	display: block;
+	margin: 0 0 4px;
+	font-size: 12.5px;
+	font-weight: 700;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-field input,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-field textarea {
+	display: block;
+	width: 100%;
+	margin: 0;
+	padding: 10px 12px;
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius-sm);
+	background: var(--ssp-surface);
+	color: var(--ssp-ink);
+	font-family: inherit;
+	font-size: 14.5px;
+	line-height: 1.35;
+	box-sizing: border-box;
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-field textarea {
+	min-height: 76px;
+	resize: vertical;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-field input:focus,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-field textarea:focus {
+	outline: none;
+	border-color: var(--ssp-brand-text);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--ssp-brand) 18%, transparent);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-hint {
+	margin: -2px 0 0;
+	font-size: 12.5px;
+	color: var(--ssp-muted);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-error {
+	margin: 0;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.35;
+	color: #b42318;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-bg="dark"] .sitestaffr-panel-help-error {
+	color: #ff9b8f;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-form .sitestaffr-panel-go {
+	min-height: 48px;
+	margin-top: 2px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-go:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-back {
+	display: block;
+	width: 100%;
+	min-height: 44px;
+	margin: 10px 0 0;
+	font-size: 14px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-when {
+	margin: 8px 0 0;
+	font-size: 14px;
+	line-height: 1.4;
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help.is-start .sitestaffr-panel-greeting {
+	margin-bottom: 8px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help .sitestaffr-panel-call-line {
+	margin-top: 0;
+	padding-top: 16px;
+}
+
+/* The card's rows are the visitor's own words: a long message wraps instead of widening the card. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help.is-sent dd {
+	white-space: pre-wrap;
+}
+
+/* An error line: the words, then a button for each way forward. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-chat-notice.sitestaffr-panel-notice {
+	align-self: stretch;
+	padding: 4px 4px 2px;
+	font-style: normal;
+	text-align: left;
+	font-size: 14px;
+	line-height: 1.45;
+	color: var(--ssp-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notice > p {
+	margin: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notice-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 10px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notice-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 44px;
+	margin: 0;
+	padding: 10px 16px;
+	border: 1px solid var(--ssp-line);
+	border-radius: var(--ssp-radius-sm);
+	background: var(--ssp-card);
+	color: var(--ssp-ink);
+	font-family: inherit;
+	font-size: 14.5px;
+	font-weight: 700;
+	line-height: 1.2;
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notice-btn.is-primary {
+	border-color: transparent;
+	background: var(--ssp-brand);
+	color: var(--ssp-on-brand);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-notice-btn:focus-visible,
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-back:focus-visible {
+	outline: 2px solid var(--ssp-brand-text);
+	outline-offset: 2px;
+}
+
+/* Concierge: ruled lines instead of boxes, inside the look's double-border card. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-help-field input,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-help-field textarea {
+	padding-left: 0;
+	padding-right: 0;
+	border-width: 0 0 1px;
+	border-radius: 0;
+	background: transparent;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-help-field > span {
+	font-weight: 400;
+	font-style: italic;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-notice-btn {
+	border-radius: 0;
+	font-size: 12.5px;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="concierge"] .sitestaffr-panel-help-back {
+	border: 0;
+	background: transparent;
+	font-size: 12.5px;
+	text-decoration: underline;
+}
+
+/* Workshop: the work order. The card has no padding of its own (its title bar runs edge to edge), so the body supplies it. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-help-intro,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-help-when {
+	margin: 0;
+	padding: 12px 14px 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-help-form {
+	padding: 12px 14px 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-help.is-start .sitestaffr-panel-help-intro {
+	padding: 0 0 12px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-help.is-start .sitestaffr-panel-help-form {
+	padding: 0;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-help.is-start .sitestaffr-panel-fine {
+	padding: 0;
+	margin-top: 10px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-help-field > span {
+	font-size: 10.5px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-help-field input {
+	min-height: 52px;
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-help-field textarea {
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-help-back {
+	width: calc(100% - 28px);
+	margin: 10px 14px 8px;
+	min-height: 48px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-notice-btn {
+	min-height: 52px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+/* A phone zooms into a field smaller than 16px: keep them readable and still. */
+@media (max-width: 480px) {
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-field input,
+	.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-help-field textarea {
+		font-size: 16px;
+	}
+}
+
+/* === Short windows (#582) === */
+/* Set by sitestaffr-panel.js when the first screen would not fit: same content, less air. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start[data-ssp-tight] {
+	padding-top: 12px;
+	padding-bottom: 12px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-greeting {
+	margin: 0 0 8px;
+	font-size: 21px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-label {
+	margin: 10px 0 6px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-question {
+	margin-bottom: 4px;
+	padding-top: 8px;
+	padding-bottom: 8px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-mode,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="workshop"] .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-mode {
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-chips {
+	margin-top: 8px;
+}
+
+/* Voice first and the sheet's rows, same rule (#582): smaller orb and tighter rows before anything is dropped. */
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start.sitestaffr-panel-start--voice[data-ssp-tight] {
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-hero-orb {
+	width: 84px;
+	height: 84px;
+	margin: 0 0 10px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-hero-title {
+	margin: 0 0 4px;
+	font-size: 20px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-tagline {
+	margin: 0 0 10px;
+	font-size: 13px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-talk {
+	padding-top: 11px;
+	padding-bottom: 11px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-fine-print {
+	margin-top: 8px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start--sheet[data-ssp-tight] .sitestaffr-panel-acts {
+	gap: 6px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel .sitestaffr-panel-start--sheet[data-ssp-tight] .sitestaffr-panel-act {
+	padding-top: 8px;
+	padding-bottom: 8px;
+}
+
+/* === POSTER, BLUEPRINT, SKETCH (#626) ===
+   The sixth to eighth looks, approved 2026-10-28 (rounds 1 and 3 of the chat window looks: Poster, then
+   Blueprint and Sketch). Each starts from Front Desk and keeps to the panel's own tokens (--ssp-*, or a
+   color-mix of two), so Light, Tinted, Dark and an owner's background keep their checked contrast. Every way
+   in looks like a button. No left borders. Here, before the owner's colors, so those still win. */
+
+/* A question wraps inside its button and never cuts off (Mario, 2026-10-26). If three do not fit, the
+   panel's fit rule (#582) drops the last one rather than scrolling. */
+.sitestaffr-chat-panel.sitestaffr-panel:is([data-ssp-look="poster"], [data-ssp-look="blueprint"], [data-ssp-look="sketch"]) .sitestaffr-panel-question .sitestaffr-panel-question-text {
+	display: block;
+	-webkit-line-clamp: unset;
+	line-clamp: unset;
+	overflow: visible;
+}
+
+/* Blueprint and Sketch: the label above the questions is a plain sentence, not small capitals. */
+.sitestaffr-chat-panel.sitestaffr-panel:is([data-ssp-look="blueprint"], [data-ssp-look="sketch"]) .sitestaffr-panel-start .sitestaffr-panel-label {
+	text-transform: none;
+	letter-spacing: 0;
+}
+
+/* --- POSTER: black outlines, hard shadows --- */
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] { border: 2px solid var(--ssp-ink); box-shadow: 8px 8px 0 var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-header { border-bottom: 2px solid var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-header::before { display: none; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-mark { border: 2px solid var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-chat-header-title { font-size: 18px; font-weight: 800; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-greeting { margin: 4px 0 18px; font-size: 32px; font-weight: 800; line-height: 1.04; letter-spacing: -0.015em; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-modes { grid-template-columns: 1fr; gap: 12px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-mode,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-question,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-chat-message,
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-card {
+	border: 2px solid var(--ssp-ink);
+	box-shadow: 4px 4px 0 var(--ssp-ink);
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-mode { padding: 15px 14px; gap: 14px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-mode > span { flex: 1; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-mode b { font-size: 18px; font-weight: 800; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-mode:not(.is-primary) .sitestaffr-panel-icon { color: var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-mode.is-primary { border-color: var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-label { margin-top: 24px; color: var(--ssp-ink); letter-spacing: 0.04em; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-question { margin-bottom: 12px; font-weight: 700; box-shadow: 3px 3px 0 var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-call-line { color: var(--ssp-ink); font-weight: 600; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-chat-message { box-shadow: 3px 3px 0 var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-chat-input-area { border-top: 2px solid var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-chat-textarea { border: 2px solid var(--ssp-ink); box-shadow: none; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] :is(.sitestaffr-chat-send-btn, .sitestaffr-panel-mic) { border: 2px solid var(--ssp-ink); }
+
+/* Talking: the orb's core outlined with a hard shadow, the rings drawn as outlines, the captions and the
+   details on a shadowed card, and Mute / Type / End as outlined buttons. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-orb > span { background: transparent; border: 2px solid var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-orb-core { border: 2px solid var(--ssp-ink); box-shadow: 5px 5px 0 var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-call-status { color: var(--ssp-ink); font-size: 16px; font-weight: 800; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] :is(.sitestaffr-panel-captions, .sitestaffr-panel-notepad) {
+	border: 2px solid var(--ssp-ink);
+	box-shadow: 4px 4px 0 var(--ssp-ink);
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-caption b { color: var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-call-btn > .sitestaffr-panel-icon {
+	border: 2px solid var(--ssp-ink);
+	box-shadow: 3px 3px 0 var(--ssp-ink);
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-call-btn small { color: var(--ssp-ink); font-weight: 700; }
+
+/* On a phone the panel is the screen: no outline or shadow round it. */
+@media (max-width: 480px) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] { border: 0; box-shadow: none; }
+}
+
+/* --- BLUEPRINT: grid paper, a title block --- */
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-header { border-bottom: 1.5px solid var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-header::before { display: none; }
+/* Grid paper behind the first screen, the conversation and the call: a major line every 100px, a minor every 20px. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] :is(.sitestaffr-panel-start, .sitestaffr-chat-messages, .sitestaffr-panel-call) {
+	background-color: var(--ssp-surface);
+	background-image:
+		linear-gradient(color-mix(in srgb, var(--ssp-brand-text) 15%, transparent) 1px, transparent 1px),
+		linear-gradient(90deg, color-mix(in srgb, var(--ssp-brand-text) 15%, transparent) 1px, transparent 1px),
+		linear-gradient(color-mix(in srgb, var(--ssp-brand-text) 7%, transparent) 1px, transparent 1px),
+		linear-gradient(90deg, color-mix(in srgb, var(--ssp-brand-text) 7%, transparent) 1px, transparent 1px);
+	background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+	background-position: -1px -1px;
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-start { padding: 20px 20px 16px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-greeting { margin: 0 0 10px; font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
+/* A dimension line under the greeting: |----| in the main color. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-dim {
+	display: block;
+	flex: none;
+	width: 64%;
+	height: 9px;
+	margin: 0 0 20px;
+	background:
+		linear-gradient(var(--ssp-brand-text), var(--ssp-brand-text)) left center / 100% 1px no-repeat,
+		linear-gradient(var(--ssp-brand-text), var(--ssp-brand-text)) left center / 1px 9px no-repeat,
+		linear-gradient(var(--ssp-brand-text), var(--ssp-brand-text)) right center / 1px 9px no-repeat;
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-start .sitestaffr-panel-modes { grid-template-columns: 1fr 1fr; gap: 22px; padding: 0 7px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-start .sitestaffr-panel-modes.is-one { grid-template-columns: 1fr; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-mode {
+	position: relative;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	min-height: 112px;
+	padding: 14px;
+	border: 1.5px solid var(--ssp-ink);
+	border-radius: 0;
+	background: var(--ssp-card);
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-mode.is-primary { border-color: var(--ssp-ink); background: var(--ssp-brand); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-mode b { font-size: 20px; font-weight: 800; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-mode small { font-size: 12.5px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-modes.is-one .sitestaffr-panel-mode { flex-direction: row; align-items: center; justify-content: flex-start; min-height: 76px; }
+/* Crop marks just outside each box's corners. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-crop {
+	--c: color-mix(in srgb, var(--ssp-ink) 55%, transparent);
+	position: absolute;
+	inset: -7px;
+	pointer-events: none;
+	background:
+		linear-gradient(var(--c), var(--c)) left top / 9px 1px no-repeat, linear-gradient(var(--c), var(--c)) left top / 1px 9px no-repeat,
+		linear-gradient(var(--c), var(--c)) right top / 9px 1px no-repeat, linear-gradient(var(--c), var(--c)) right top / 1px 9px no-repeat,
+		linear-gradient(var(--c), var(--c)) left bottom / 9px 1px no-repeat, linear-gradient(var(--c), var(--c)) left bottom / 1px 9px no-repeat,
+		linear-gradient(var(--c), var(--c)) right bottom / 9px 1px no-repeat, linear-gradient(var(--c), var(--c)) right bottom / 1px 9px no-repeat;
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-label { margin: 24px 0 8px; font-size: 13px; font-weight: 700; color: var(--ssp-brand-text); }
+/* Small text never sits on a grid line: it gets the paper behind it, so it reads at 4.5:1 on any brand. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] :is(.sitestaffr-panel-label, .sitestaffr-panel-receipt, .sitestaffr-panel-call-btn small, .sitestaffr-panel-divider span, .sitestaffr-panel-call-status) {
+	width: fit-content;
+	padding: 0 4px;
+	background: var(--ssp-surface);
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-start .sitestaffr-panel-label { align-self: flex-start; margin-left: -4px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-question {
+	margin: 0 0 8px;
+	padding: 11px 12px 11px 14px;
+	border: 1px solid color-mix(in srgb, var(--ssp-ink) 50%, transparent);
+	border-radius: 0;
+	background: var(--ssp-card);
+	font-weight: 600;
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-question:hover { border-color: var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] :is(.sitestaffr-panel-start .sitestaffr-panel-modes, .sitestaffr-panel-questions) { margin-bottom: 14px; }
+/* The title block, as on a drawing: phone and today's hours, one cell each, ink lines between. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-tb {
+	display: grid;
+	flex: none;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+	gap: 1.5px;
+	margin-top: auto;
+	border: 1.5px solid var(--ssp-ink);
+	background: var(--ssp-ink);
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-tb.is-one { grid-template-columns: 1fr; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-tb-cell { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 7px 12px 8px; background: var(--ssp-card); color: var(--ssp-ink); text-decoration: none; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-tb-cell small { font-size: 11.5px; color: var(--ssp-muted); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-tb-cell b { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-tb-cell.is-call b { color: var(--ssp-brand-text); white-space: nowrap; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-tb-cell.is-call:hover { background: var(--ssp-soft); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-tb-cell.is-call:focus-visible { outline: 2px solid var(--ssp-brand-text); outline-offset: -3px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-tb-cell .sitestaffr-panel-live { margin: 0; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-chat-message { border-radius: 0; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-chat-message--assistant { border: 1px solid color-mix(in srgb, var(--ssp-ink) 45%, transparent); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-card { border: 1.5px solid var(--ssp-ink); border-radius: 0; box-shadow: none; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-chat-input-area { border-top: 1.5px solid var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-chat-textarea { border-radius: 0; border-color: color-mix(in srgb, var(--ssp-ink) 50%, transparent); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] :is(.sitestaffr-chat-send-btn, .sitestaffr-panel-mic) { border-radius: 0; }
+
+/* Talking: on the grid, the orb's rings drawn as dashed construction circles, the captions and details in
+   ruled boxes, and square Mute / Type / End. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-orb > span { background: transparent; border: 1.5px dashed var(--ssp-brand-text); opacity: 0.7; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-orb-core { border: 1.5px solid var(--ssp-ink); box-shadow: none; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] :is(.sitestaffr-panel-captions, .sitestaffr-panel-notepad) {
+	border: 1.5px solid var(--ssp-ink);
+	border-radius: 0;
+	box-shadow: none;
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-caption b { color: var(--ssp-brand-text); letter-spacing: 0.04em; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-call-controls { background: transparent; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-call-btn > .sitestaffr-panel-icon {
+	border: 1.5px solid var(--ssp-ink);
+	border-radius: 0;
+	background: var(--ssp-card);
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-call-btn.is-on > .sitestaffr-panel-icon { background: var(--ssp-brand); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-call-btn.is-end > .sitestaffr-panel-icon { background: #d93a3a; }
+/* A square End button stays square: the receiver turns to hang up, not the button round it. */
+.sitestaffr-chat-panel.sitestaffr-panel:is([data-ssp-look="blueprint"], [data-ssp-look="sketch"]) .sitestaffr-panel-call-btn.is-end > .sitestaffr-panel-icon { transform: none; }
+.sitestaffr-chat-panel.sitestaffr-panel:is([data-ssp-look="blueprint"], [data-ssp-look="sketch"]) .sitestaffr-panel-call-btn.is-end > .sitestaffr-panel-icon path { transform: rotate(135deg); transform-origin: 12px 12px; }
+
+/* --- SKETCH: hand-drawn lines, highlighter --- */
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] {
+	--ssp-wob1: 255px 15px 225px 15px / 15px 225px 15px 255px;
+	--ssp-wob2: 15px 225px 15px 255px / 225px 15px 255px 15px;
+	--ssp-wob3: 225px 25px 205px 15px / 25px 205px 15px 225px;
+	/* The same hand on round things (the orb, Mute / Type / End): a circle drawn freehand. */
+	--ssp-wob-o1: 48% 52% 45% 55% / 55% 45% 53% 47%;
+	--ssp-wob-o2: 53% 47% 55% 45% / 46% 54% 47% 53%;
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-header { border-bottom: 0; padding-bottom: 4px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-header::before { display: none; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-mark { border: 2px solid var(--ssp-ink); border-radius: var(--ssp-wob1); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-start { padding: 12px 20px 14px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-sketch-top { display: flex; flex: none; align-items: flex-start; gap: 2px; margin: 0 0 14px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-greeting { flex: 1; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.32; }
+/* The highlighter stroke sits low behind the words and follows them onto a second line. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-hl {
+	padding: 0 4px;
+	background: linear-gradient(176deg, transparent 50%, color-mix(in srgb, var(--ssp-brand) 32%, transparent) 50%, color-mix(in srgb, var(--ssp-brand) 32%, transparent) 88%, transparent 88%);
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-start .sitestaffr-panel-modes { grid-template-columns: 1fr; gap: 14px; padding: 0 3px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-mode {
+	gap: 14px;
+	min-height: 70px;
+	padding: 12px 18px;
+	border: 2.5px solid var(--ssp-ink);
+	border-radius: var(--ssp-wob2);
+	background: var(--ssp-card);
+	transform: rotate(0.8deg);
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-mode.is-primary { border-color: var(--ssp-ink); border-radius: var(--ssp-wob1); background: var(--ssp-brand); transform: rotate(-1deg); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-mode b { font-size: 21px; font-weight: 800; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-mode small { font-size: 13px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-mode:not(.is-primary) .sitestaffr-panel-icon { color: var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-mode:hover { border-color: var(--ssp-ink); transform: rotate(0deg); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-label { margin: 22px 0 9px; font-size: 15px; font-weight: 800; color: var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-question {
+	margin: 0 0 10px;
+	padding: 11px 14px 11px 16px;
+	border: 2px solid var(--ssp-ink);
+	border-radius: var(--ssp-wob3);
+	background: var(--ssp-card);
+	font-size: 15px;
+	font-weight: 600;
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-question:nth-child(2) { border-radius: var(--ssp-wob1); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-question:nth-child(3) { border-radius: var(--ssp-wob2); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-question:hover { border-color: var(--ssp-ink); background: var(--ssp-soft); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-call-line { padding-top: 12px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-chat-message { border: 2px solid var(--ssp-ink); border-radius: var(--ssp-wob3); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-chat-message--assistant { border-radius: var(--ssp-wob1); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-card { border: 2px solid var(--ssp-ink); border-radius: var(--ssp-wob2); box-shadow: none; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-chat-input-area { border-top: 0; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-chat-textarea { border: 2px solid var(--ssp-ink); border-radius: var(--ssp-wob2); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] :is(.sitestaffr-chat-send-btn, .sitestaffr-panel-mic) { border-radius: var(--ssp-wob1); }
+
+/* Talking: a hand-drawn orb (wobbly rings, slightly turned), the status under a highlighter stroke, the
+   captions and details in drawn boxes, and Mute / Type / End as drawn circles. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-orb > span { background: transparent; border: 2px solid var(--ssp-ink); border-radius: var(--ssp-wob-o1); opacity: 0.35; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-orb > span:nth-child(2) { border-radius: var(--ssp-wob-o2); transform: rotate(-8deg); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-orb-core { border: 2.5px solid var(--ssp-ink); border-radius: var(--ssp-wob-o2); box-shadow: none; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-call-status {
+	padding: 0 4px;
+	color: var(--ssp-ink);
+	font-size: 16px;
+	font-weight: 800;
+	background: linear-gradient(176deg, transparent 50%, color-mix(in srgb, var(--ssp-brand) 32%, transparent) 50%, color-mix(in srgb, var(--ssp-brand) 32%, transparent) 88%, transparent 88%);
+}
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-captions { border: 2px solid var(--ssp-ink); border-radius: var(--ssp-wob3); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-notepad { border: 2px solid var(--ssp-ink); border-radius: var(--ssp-wob1); box-shadow: none; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-caption b { color: var(--ssp-ink); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-call-btn > .sitestaffr-panel-icon { border: 2px solid var(--ssp-ink); border-radius: var(--ssp-wob-o1); }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-call-btn.is-end > .sitestaffr-panel-icon { border-radius: var(--ssp-wob-o2); }
+
+@media (prefers-reduced-motion: reduce) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-mode { transform: none; }
+}
+
+/* --- Phones: the three looks, full screen --- */
+@media (max-width: 480px) {
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-greeting { font-size: 29px; }
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-start .sitestaffr-panel-mode { min-height: 130px; }
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-question { padding: 13px 12px 13px 14px; font-size: 15px; }
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-greeting { font-size: 31px; }
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-start .sitestaffr-panel-mode { min-height: 80px; }
+	.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-question { padding: 13px 14px 13px 16px; }
+}
+
+/* --- Short windows (#582): the same content with less air, before the fit rule drops anything --- */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-greeting { margin-bottom: 12px; font-size: 27px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-mode { padding-top: 11px; padding-bottom: 11px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="poster"] .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-label { margin-top: 16px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-dim { margin-bottom: 14px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-mode { min-height: 90px; gap: 10px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="blueprint"] .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-label { margin-top: 16px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-mode { min-height: 60px; }
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-look="sketch"] .sitestaffr-panel-start[data-ssp-tight] .sitestaffr-panel-label { margin-top: 14px; }
+
+/* --- The Guided Form card in the three looks --- */
+.sitestaffr-button-container[data-ssp-look="poster"] .sitestaffr-onboarding-card { border: 2px solid var(--ssp-ink); border-radius: 0; box-shadow: 6px 6px 0 var(--ssp-ink); }
+.sitestaffr-button-container[data-ssp-look="blueprint"] .sitestaffr-onboarding-card { border: 1.5px solid var(--ssp-ink); border-radius: 0; box-shadow: none; }
+.sitestaffr-button-container[data-ssp-look="sketch"] .sitestaffr-onboarding-card { border: 2px solid var(--ssp-ink); border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; box-shadow: none; }
+
+/* === SIDE PANEL ON COMPUTERS (#626, round 2 mockup 6) ===
+   On computers the owner can choose Side panel: full height on the chat button's side, square on the screen
+   edge, with any look. It closes only from its close button (#358); the page beside it stays as it is, undimmed.
+   Phones (480px and down) are untouched; they follow On phones. The owner's preview keeps drawing the window
+   alone, so these rules leave it out. */
+@media (min-width: 481px) {
+	body:not(.sitestaffr-panel-preview-only) .sitestaffr-chat-panel.sitestaffr-panel[data-ssp-place="side"] {
+		--chat-panel-width: 420px;
+		top: 0 !important;
+		right: 0 !important;
+		bottom: 0 !important;
+		left: auto !important;
+		width: var(--chat-panel-width) !important;
+		height: 100vh !important;
+		height: 100dvh !important;
+		max-height: none !important;
+		margin: 0 !important;
+		border-radius: 0 !important;
+		box-shadow: -18px 0 48px color-mix(in srgb, var(--ssp-ink) 20%, transparent), -1px 0 0 var(--ssp-line) !important;
+		transform: translateX(24px);
+	}
+	body:not(.sitestaffr-panel-preview-only) .sitestaffr-chat-panel.sitestaffr-panel[data-ssp-place="side"].is-open { transform: none; }
+	body:not(.sitestaffr-panel-preview-only) .sitestaffr-chat-panel.sitestaffr-panel[data-ssp-place="side"].position-bottom-left {
+		right: auto !important;
+		left: 0 !important;
+		box-shadow: 18px 0 48px color-mix(in srgb, var(--ssp-ink) 20%, transparent), 1px 0 0 var(--ssp-line) !important;
+		transform: translateX(-24px);
+	}
+	body:not(.sitestaffr-panel-preview-only) .sitestaffr-chat-panel.sitestaffr-panel[data-ssp-place="side"].position-bottom-left.is-open { transform: none; }
+	/* Poster drops its outer outline at the screen edge; its buttons and messages keep theirs. */
+	body:not(.sitestaffr-panel-preview-only) .sitestaffr-chat-panel.sitestaffr-panel[data-ssp-place="side"][data-ssp-look="poster"] { border: 0; }
+	body:not(.sitestaffr-panel-preview-only) .sitestaffr-chat-panel.sitestaffr-panel[data-ssp-place="side"] .sitestaffr-panel-header { padding-top: 22px; }
+	/* The chat button hides while it is open: sitestaffr-chat-panel.css, beside the phones' rule. */
+}
+
+@media (min-width: 481px) and (prefers-reduced-motion: reduce) {
+	body:not(.sitestaffr-panel-preview-only) .sitestaffr-chat-panel.sitestaffr-panel[data-ssp-place="side"] { transform: none; }
+}
+
+/* === The owner's preview (Chat Window tab) ===
+   The chat window alone, whole and unscrolled (Mario, 2026-10-27): the page behind it is hidden and
+   cannot scroll, and on a computer the panel sits at the top center of the frame. The admin screen
+   sizes the frame to it (admin-panel-settings.js fit()). Only an administrator's preview link gets
+   this class (SiteStaffr_Panel_Look::preview_body_class()). */
+/* === THE OWNER'S COLORS AND FONT (#609, round 3 mockup 1) ===
+   SiteStaffr_Panel_Look::own_colors() names what the owner set in data-ssp-own and hands each color
+   with its ink (black or white, whichever reads); on an owner background the cards, muted text and
+   lines come derived to keep 4.5:1. Last in the file, so they win over every look at equal weight. */
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-own~="bg"] {
+	--ssp-surface: var(--ssp-own-bg);
+	--ssp-card: var(--ssp-own-card);
+	--ssp-soft: color-mix(in srgb, var(--ssp-own-ink) 8%, var(--ssp-own-bg));
+	--ssp-ink: var(--ssp-own-ink);
+	--ssp-muted: var(--ssp-own-muted);
+	--ssp-line: var(--ssp-own-line);
+}
+
+/* A text color the owner chose, only when it reads at 4.5:1 (the server leaves the flag off otherwise). */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-own~="text"] {
+	--ssp-ink: var(--ssp-own-text);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-font="own"] {
+	--ssp-font: var(--ssp-own-font, inherit);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-own~="header"] .sitestaffr-panel-header {
+	background: var(--ssp-own-header);
+	border-bottom-color: transparent;
+	color: var(--ssp-own-header-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-own~="header"] .sitestaffr-panel-header::before {
+	display: none;
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-own~="header"] .sitestaffr-panel-header :is(.sitestaffr-chat-header-title, .sitestaffr-chat-header-subtitle, .sitestaffr-chat-header-btn, .sitestaffr-panel-back) {
+	color: var(--ssp-own-header-ink);
+	opacity: 1;
+}
+
+/* Buttons: the main color's place on Talk, the send button and the big actions, in the owner's color. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-own~="buttons"] :is(.sitestaffr-panel-mode.is-primary, .sitestaffr-panel-talk, .sitestaffr-chat-send-btn, .sitestaffr-panel-act.is-talk) {
+	--ssp-brand: var(--ssp-own-buttons);
+	--ssp-on-brand: var(--ssp-own-buttons-ink);
+	--ss-accent: var(--ssp-own-buttons);
+	--ss-on-accent: var(--ssp-own-buttons-ink);
+	--chat-primary: var(--ssp-own-buttons);
+	--chat-text-on-primary: var(--ssp-own-buttons-ink);
+	background: var(--ssp-own-buttons);
+	border-color: var(--ssp-own-buttons);
+	color: var(--ssp-own-buttons-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-own~="buttons"] :is(.sitestaffr-panel-mode.is-primary, .sitestaffr-panel-talk, .sitestaffr-chat-send-btn, .sitestaffr-panel-act.is-talk) :is(b, small, svg, .sitestaffr-panel-act-ic) {
+	color: var(--ssp-own-buttons-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-own~="visitor"] .sitestaffr-chat-message--visitor {
+	background: var(--ssp-own-visitor);
+	border-color: transparent;
+	color: var(--ssp-own-visitor-ink);
+}
+
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-own~="assistant"] .sitestaffr-chat-message--assistant {
+	background: var(--ssp-own-assistant);
+	border-color: transparent;
+	color: var(--ssp-own-assistant-ink);
+}
+
+/* A link on the owner's reply color: the reply's own ink, underlined, never the main color. */
+.sitestaffr-chat-panel.sitestaffr-panel[data-ssp-own~="assistant"] .sitestaffr-chat-message--assistant a {
+	color: inherit;
+	text-decoration: underline;
+}
+
+/* body's overflow carries to the viewport while html leaves its own visible, so the page cannot scroll. */
+body.sitestaffr-panel-preview-only {
+	overflow: hidden !important;
+}
+
+body.sitestaffr-panel-preview-only:not(.sitestaffr-panel-preview-page) {
+	background: transparent !important;
+	visibility: hidden;
+}
+
+body.sitestaffr-panel-preview-only .sitestaffr-chat-panel.sitestaffr-panel {
+	visibility: visible;
+	/* A picture: no slide-in on each redraw, so the parts are where the owner screen outlines them (#609). */
+	transition: none !important;
+}
+
+@media (min-width: 481px) {
+	/* 40px above: room for the owner screen's label over an outlined window, even shrunk (#609). */
+	body.sitestaffr-panel-preview-only .sitestaffr-chat-panel.sitestaffr-panel {
+		top: 40px !important;
+		bottom: auto !important;
+		left: calc(50% - var(--chat-panel-width) / 2) !important;
+		right: auto !important;
+		max-height: min(640px, calc(100vh - 60px));
+	}
+}

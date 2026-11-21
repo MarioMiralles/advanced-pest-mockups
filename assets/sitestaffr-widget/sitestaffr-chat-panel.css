@@ -1,0 +1,1577 @@
+/**
+ * SiteStaffr Chat Panel Styles
+ *
+ * Styles for the text chat panel and landing card used by
+ * [sitestaffr_widget] and [sitestaffr_button] shortcodes.
+ *
+ * The look is decided by the owner's Chat Window settings (#236), which arrive as
+ * data-ss-* attributes and a --ss-corners variable copied from the widget root by
+ * SiteStaffrChatStyle.apply() (sitestaffr-core.js). This file holds the design; the
+ * settings hold the choices. With no attributes at all — cached markup from an older
+ * version, or a site that never saved the section — everything below renders the
+ * Signature preset, which is why the base rules ARE Signature and the attribute rules
+ * only describe departures from it.
+ *
+ * Specificity is deliberate throughout:
+ *   - attribute rules sit inside :where(), so they add nothing over the base rules they
+ *     replace. Neon never reaches the chat window: it styles the launcher only (#331);
+ *   - every control rule is scoped under its root (.sitestaffr-chat-panel …), because
+ *     page builders style bare elements globally — Elementor's `.elementor-kit-N button`
+ *     is (0,1,1) and beat a lone (0,1,0) class, turning the header buttons into gray
+ *     blocks on a real client site.
+ *
+ * @package    SiteStaffr
+ * @since      1.5.0
+ */
+
+/* ===========================
+   TOKENS
+   =========================== */
+
+.sitestaffr-chat-panel,
+.sitestaffr-landing-card,
+/* #395: the Guided Forms card takes the same brand tokens, but only on a site that renders the new
+   panel (data-ssp-look is emitted only then), so the 1.59 card is untouched. */
+.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-card {
+	/* The brand color. --widget-accent exists only when the widget's own background is
+	   light (the Outline preset), because there the background is white, not the brand. */
+	--ss-accent: var(--widget-accent, var(--widget-bg-color, #1FB6CC));
+	--ss-on-accent: var(--widget-accent-ink, var(--widget-icon-color, #ffffff));
+	--ss-accent-soft: color-mix(in srgb, var(--ss-accent) 11%, #ffffff);
+	--ss-accent-softer: color-mix(in srgb, var(--ss-accent) 5%, #ffffff);
+	/* The far end of the header gradient. Kept shallow: a light brand gets DARK ink, and a
+	   deep end pulled toward black took that ink under 4.5:1 on the default teal. */
+	--ss-accent-deep: color-mix(in srgb, var(--ss-accent) 86%, #000000);
+	--ss-accent-lift: color-mix(in srgb, var(--ss-accent) 92%, #ffffff);
+	/* The brand as a line, icon or label on the light surface. Only a light brand gets a
+	   darker step here (emitted by the provider); every other brand is legible as-is. */
+	--ss-accent-text: var(--widget-accent-text, var(--ss-accent));
+
+	/* One corner value, scaled down for smaller parts. A radius larger than half an
+	   element's size renders as a full round, so doubling it for buttons and the input
+	   gives circles and pills at the rounded presets and crisp squares at 0. */
+	--ss-r: var(--ss-corners, 20px);
+	--ss-r-bubble: calc(var(--ss-r) * 0.85);
+	--ss-r-tile: calc(var(--ss-r) * 0.7);
+	--ss-r-round: calc(var(--ss-r) * 2);
+
+	--ss-ink: #0f172a;
+	--ss-ink-muted: #64748b;
+	--ss-rule: #e7e9ee;
+	--ss-surface: #f6f7f9;
+	/* The light fills that sit ON the surface — a card, a soft bubble, an icon well. Tokens
+	   rather than literals so a dark surface (Deep, or an owner's dark background) can
+	   swap all of them at once instead of leaving white boxes holding light text. */
+	--ss-card: #ffffff;
+	--ss-soft: #f1f3f6;
+	--ss-icon-bg: var(--ss-accent-soft);
+
+	--chat-primary: var(--ss-accent);
+	--chat-primary-hover: var(--widget-hover-bg-color, var(--ss-accent-deep));
+	--chat-text-on-primary: var(--ss-on-accent);
+	--chat-bg: var(--ss-surface);
+	--chat-border: var(--ss-rule);
+	--chat-text: var(--ss-ink);
+	--chat-text-muted: var(--ss-ink-muted);
+	--chat-visitor-bg: var(--ss-accent);
+	--chat-visitor-text: var(--ss-on-accent);
+	--chat-assistant-bg: var(--ss-card);
+	--chat-assistant-text: var(--ss-ink);
+	--chat-input-bg: var(--ss-card);
+	--chat-input-border: #e2e5ea;
+	--chat-input-focus: var(--chat-primary);
+	--chat-radius: var(--ss-r);
+	--chat-panel-width: 384px;
+	--chat-panel-height: 540px;
+	--chat-font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Contrast is computed from the brand itself, in the browser, so it follows whatever
+   --widget-bg-color really is — including the proposal builder's override.
+   L below is WCAG relative luminance (gamma 2.2 approximation). A cheaper gamma-encoded
+   weighting misjudged mid-tones: a medium green got white text at 3.4:1.
+   - --ss-on-accent: text ON the brand. Black-ish above L 0.179 (where black and white
+     contrast equally), white below. It used to be the launcher's Icon color, white by
+     default, which is 2.3:1 on the default SiteStaffr teal.
+     Pure black, not near-black: for a mid-tone brand near the crossover (a copper) only
+     true black clears 4.5:1 — #1D2327 measured 4.4.
+   - --ss-counter: the opposite of that ink. The header gradient shades TOWARD it, so its
+     depth always adds contrast. Shading toward black regardless took dark ink on the
+     default teal under 4.5:1, and lightening took white ink on an orange under it.
+   - --ss-accent-text: the brand as a line, icon or label on the light surface. Each
+     channel is scaled so L lands at 0.16 at most (4.5:1 on near-white); a brand that
+     is already dark enough is left exactly as it is.
+   Browsers without relative color syntax keep the fallbacks declared above. */
+@supports (color: rgb(from red calc(pow(r, 1)) g b)) {
+	.sitestaffr-chat-panel,
+	.sitestaffr-landing-card,
+	.sitestaffr-button-container[data-ssp-look] .sitestaffr-onboarding-card {
+		/* A mid-tone brand (L 0.179-0.30: a copper, a mid green) takes WHITE ink on a fill
+		   deepened just enough for it (L 0.175, at most ~12% darker per channel). Black on
+		   copper passed AA but read as wrong to Mario ("tough to see the orange with the
+		   black text", #314). Lighter brands keep black ink on their exact color; darker
+		   ones are untouched. The server applies the same rule to owner colors
+		   (text_safe_fill()). */
+		--ss-accent: rgb(from var(--widget-accent, var(--widget-bg-color, #1FB6CC))
+			calc(r * (clamp(0, ((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)) - 0.30) * 100000, 1) + (1 - clamp(0, ((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)) - 0.30) * 100000, 1)) * pow(min(1, 0.175 / max((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)), 0.0001)), 0.4545)))
+			calc(g * (clamp(0, ((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)) - 0.30) * 100000, 1) + (1 - clamp(0, ((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)) - 0.30) * 100000, 1)) * pow(min(1, 0.175 / max((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)), 0.0001)), 0.4545)))
+			calc(b * (clamp(0, ((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)) - 0.30) * 100000, 1) + (1 - clamp(0, ((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)) - 0.30) * 100000, 1)) * pow(min(1, 0.175 / max((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)), 0.0001)), 0.4545))));
+		--ss-on-accent: rgb(from var(--ss-accent)
+			clamp(0, (0.179 - (0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2))) * 100000, 255)
+			clamp(0, (0.179 - (0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2))) * 100000, 255)
+			clamp(0, (0.179 - (0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2))) * 100000, 255));
+		--ss-counter: rgb(from var(--ss-on-accent) calc(255 - r) calc(255 - g) calc(255 - b));
+		--ss-accent-deep: color-mix(in srgb, var(--ss-accent) 84%, var(--ss-counter));
+		--ss-accent-lift: color-mix(in srgb, var(--ss-accent) 94%, var(--ss-counter));
+		--chat-primary-hover: var(--ss-accent-deep);
+		--ss-accent-text: rgb(from var(--ss-accent)
+			calc(r * pow(min(1, 0.16 / max((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)), 0.0001)), 0.4545))
+			calc(g * pow(min(1, 0.16 / max((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)), 0.0001)), 0.4545))
+			calc(b * pow(min(1, 0.16 / max((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)), 0.0001)), 0.4545)));
+	}
+}
+
+/* Background */
+.sitestaffr-chat-panel:where([data-ss-background="white"]),
+.sitestaffr-landing-card:where([data-ss-background="white"]) {
+	--ss-surface: #ffffff;
+	--chat-assistant-bg: var(--ss-soft);
+}
+
+/* A 3% wash of the brand reads as warm paper against copper and cool paper against navy,
+   and ties the ink and rules to the same hue so nothing looks pasted on. */
+.sitestaffr-chat-panel:where([data-ss-background="tint"]),
+.sitestaffr-landing-card:where([data-ss-background="tint"]) {
+	--ss-surface: color-mix(in srgb, var(--ss-accent) 3%, #ffffff);
+	--ss-ink: color-mix(in srgb, var(--ss-accent) 12%, #1d2327);
+	--ss-ink-muted: color-mix(in srgb, var(--ss-accent) 8%, #5c6166);
+	--ss-rule: color-mix(in srgb, var(--ss-accent) 16%, #e6e6e6);
+	--chat-input-border: var(--ss-rule);
+}
+
+/* Brand wash (#314): the brand carries the whole panel at 11%, not only the header. Ink,
+   rules and muted text take the same hue so nothing looks pasted on. Light at any brand,
+   which is why it, not Deep, is the colorful preset. */
+.sitestaffr-chat-panel:where([data-ss-background="wash"]),
+.sitestaffr-landing-card:where([data-ss-background="wash"]) {
+	--ss-surface: color-mix(in srgb, var(--ss-accent) 11%, #ffffff);
+	--ss-ink: color-mix(in srgb, var(--ss-accent) 14%, #14181c);
+	--ss-ink-muted: color-mix(in srgb, var(--ss-accent) 18%, #454b51);
+	--ss-rule: color-mix(in srgb, var(--ss-accent) 24%, #e2e2e2);
+	--ss-soft: color-mix(in srgb, var(--ss-accent) 6%, #ffffff);
+	--chat-input-border: var(--ss-rule);
+}
+
+/* On the wash the page behind a brand label is darker than near-white, so the label's
+   luminance ceiling drops from 0.16 to 0.11 (the contrast audit measured 4.2:1 on rose). */
+@supports (color: rgb(from red calc(pow(r, 1)) g b)) {
+	.sitestaffr-chat-panel:where([data-ss-background="wash"]),
+	.sitestaffr-landing-card:where([data-ss-background="wash"]) {
+		--ss-accent-text: rgb(from var(--ss-accent)
+			calc(r * pow(min(1, 0.11 / max((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)), 0.0001)), 0.4545))
+			calc(g * pow(min(1, 0.11 / max((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)), 0.0001)), 0.4545))
+			calc(b * pow(min(1, 0.11 / max((0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2)), 0.0001)), 0.4545)));
+	}
+}
+
+/* Deep (#314): a night version of the brand. The dark-surface rules below do the rest. */
+.sitestaffr-chat-panel:where([data-ss-background="deep"]),
+.sitestaffr-landing-card:where([data-ss-background="deep"]) {
+	--ss-surface: color-mix(in srgb, var(--ss-accent) 26%, #101317);
+}
+
+/* The owner's own background (#314). Ink comes from the server (wcag_ink()); this rule
+   covers a light color, and a dark one also gets the dark-surface rules below. */
+.sitestaffr-chat-panel:where([data-ss-background="custom"]),
+.sitestaffr-landing-card:where([data-ss-background="custom"]) {
+	--ss-surface: var(--ss-bg-custom);
+	--ss-ink: color-mix(in srgb, var(--ss-bg-ink) 90%, var(--ss-bg-custom));
+	--ss-ink-muted: color-mix(in srgb, var(--ss-bg-ink) 66%, var(--ss-bg-custom));
+	--ss-rule: color-mix(in srgb, var(--ss-bg-ink) 14%, var(--ss-bg-custom));
+	--chat-input-border: var(--ss-rule);
+}
+
+/* Any dark surface: light ink, and every fill that sits on the surface becomes a lift of
+   it rather than white. The brand as a line or label is pulled toward white, because the
+   near-white-tuned --ss-accent-text disappears on dark. */
+.sitestaffr-chat-panel:where([data-ss-surface="dark"]),
+.sitestaffr-landing-card:where([data-ss-surface="dark"]) {
+	--ss-ink: #f5f3f0;
+	/* 85%, not less: small muted text on a lifted card over a light brand's night surface
+	   measured 3.8:1 at 72% (off-white, gold, yellow). */
+	--ss-ink-muted: color-mix(in srgb, #f5f3f0 85%, var(--ss-surface));
+	--ss-rule: color-mix(in srgb, #ffffff 16%, var(--ss-surface));
+	--ss-card: color-mix(in srgb, #ffffff 9%, var(--ss-surface));
+	--ss-soft: color-mix(in srgb, #ffffff 13%, var(--ss-surface));
+	--ss-icon-bg: color-mix(in srgb, #ffffff 12%, var(--ss-surface));
+	/* The hover fills too: left as a brand tint of white, a hovered chooser tile turned
+	   near-white under light text. */
+	--ss-accent-soft: color-mix(in srgb, var(--ss-accent) 22%, var(--ss-surface));
+	--ss-accent-softer: color-mix(in srgb, var(--ss-accent) 14%, var(--ss-surface));
+	--ss-accent-text: color-mix(in srgb, var(--ss-accent) 32%, #ffffff);
+	--chat-assistant-bg: var(--ss-card);
+	--chat-input-bg: color-mix(in srgb, #ffffff 7%, var(--ss-surface));
+	--chat-input-border: color-mix(in srgb, #ffffff 20%, var(--ss-surface));
+}
+
+.sitestaffr-chat-panel:where([data-ss-surface="dark"]) .sitestaffr-chat-textarea::placeholder {
+	color: var(--ss-ink-muted);
+}
+
+
+/* Font: "Match my website" is the page's own cascade, never a detected font. */
+.sitestaffr-chat-panel:where([data-ss-font="site"]),
+.sitestaffr-landing-card:where([data-ss-font="site"]) {
+	--chat-font: inherit;
+}
+
+/* ===========================
+   THEME-BLEED GUARD
+   =========================== */
+
+/* Host themes style bare button/textarea/heading elements globally. Reset the
+   properties that leaked in on real sites, scoped high enough to outrank them. */
+.sitestaffr-chat-panel button,
+.sitestaffr-landing-card button {
+	min-width: 0;
+	min-height: 0;
+	margin: 0;
+	font-family: inherit;
+	font-size: inherit;
+	font-weight: inherit;
+	line-height: 1;
+	letter-spacing: normal;
+	text-transform: none;
+	text-decoration: none;
+	text-shadow: none;
+	box-sizing: border-box;
+}
+
+.sitestaffr-chat-panel textarea,
+.sitestaffr-chat-panel input,
+.sitestaffr-chat-panel textarea::placeholder,
+.sitestaffr-chat-panel input::placeholder {
+	letter-spacing: normal;
+	text-transform: none;
+	font-family: inherit;
+}
+
+.sitestaffr-landing-card h3,
+.sitestaffr-landing-card p {
+	font-family: inherit;
+	text-transform: none;
+	letter-spacing: normal;
+}
+
+/* ===========================
+   LANDING CARD (both mode)
+   =========================== */
+
+.sitestaffr-landing-card {
+	position: fixed;
+	z-index: 999998;
+	width: var(--chat-panel-width);
+	background: var(--chat-bg);
+	border-radius: var(--chat-radius);
+	box-shadow: 0 32px 64px -24px rgba(15, 23, 42, 0.38), 0 12px 28px -12px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.06);
+	overflow: hidden;
+	opacity: 0;
+	transform: translateY(12px) scale(0.95);
+	transition: opacity 0.2s ease, transform 0.2s ease;
+	pointer-events: none;
+	font-family: var(--chat-font);
+	-webkit-font-smoothing: antialiased;
+	color: var(--chat-text);
+}
+
+.sitestaffr-landing-card.is-open {
+	opacity: 1;
+	transform: translateY(0) scale(1);
+	pointer-events: auto;
+}
+
+/* Signature: the question sits on a brand band with a little depth. */
+.sitestaffr-landing-card-header {
+	padding: 22px 56px 20px 22px;
+	text-align: left;
+	color: var(--chat-text-on-primary);
+	background:
+		radial-gradient(120% 140% at 0% 0%, var(--ss-accent-lift) 0%, transparent 55%),
+		linear-gradient(135deg, var(--ss-accent) 0%, var(--ss-accent-deep) 100%);
+}
+
+.sitestaffr-landing-card-eyebrow {
+	display: block;
+	margin: 0 0 10px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	opacity: 1;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.sitestaffr-landing-card .sitestaffr-landing-card-header h3 {
+	margin: 0 0 4px;
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 1.25;
+	letter-spacing: -0.015em;
+	color: inherit;
+}
+
+.sitestaffr-landing-card .sitestaffr-landing-card-header p {
+	margin: 0;
+	font-size: 13.5px;
+	line-height: 1.4;
+	color: inherit;
+	opacity: 1;
+}
+
+.sitestaffr-landing-card-tiles {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 16px;
+}
+
+/* The two choices read as rows — icon, words, arrow — not as two buttons of equal
+   weight competing for a click. */
+.sitestaffr-landing-tile {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+	padding: 14px 16px;
+	background: var(--ss-card);
+	border: 1px solid var(--chat-border);
+	border-radius: var(--ss-r-tile);
+	cursor: pointer;
+	text-align: left;
+	transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.sitestaffr-landing-tile:hover {
+	border-color: var(--ss-accent);
+	background: var(--ss-accent-softer);
+	box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--ss-accent) 45%, transparent);
+	transform: translateY(-1px);
+}
+
+.sitestaffr-landing-tile:active {
+	transform: translateY(0);
+}
+
+.sitestaffr-landing-tile-icon {
+	flex: 0 0 auto;
+	width: 44px;
+	height: 44px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--ss-icon-bg);
+	border-radius: var(--ss-r-tile);
+	color: var(--ss-accent-text);
+}
+
+.sitestaffr-landing-tile-icon svg {
+	width: 22px;
+	height: 22px;
+	stroke: currentColor;
+	fill: none;
+}
+
+.sitestaffr-landing-tile-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1;
+	min-width: 0;
+}
+
+.sitestaffr-landing-tile-label {
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--chat-text);
+}
+
+.sitestaffr-landing-tile-desc {
+	font-size: 13px;
+	color: var(--chat-text-muted);
+	line-height: 1.35;
+}
+
+.sitestaffr-landing-tile-chevron {
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	color: #94a3b8;
+	transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.sitestaffr-landing-tile:hover .sitestaffr-landing-tile-chevron {
+	color: var(--ss-accent-text);
+	transform: translateX(2px);
+}
+
+/* ===========================
+   CHAT PANEL
+   =========================== */
+
+.sitestaffr-chat-panel {
+	position: fixed;
+	z-index: 999998;
+	width: var(--chat-panel-width);
+	height: var(--chat-panel-height);
+	max-height: calc(100vh - 120px);
+	background: var(--chat-bg);
+	border-radius: var(--chat-radius);
+	box-shadow: 0 32px 64px -24px rgba(15, 23, 42, 0.38), 0 12px 28px -12px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.06);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	opacity: 0;
+	transform: translateY(12px) scale(0.95);
+	transition: opacity 0.2s ease, transform 0.2s ease;
+	pointer-events: none;
+	font-family: var(--chat-font);
+	-webkit-font-smoothing: antialiased;
+	color: var(--chat-text);
+}
+
+.sitestaffr-chat-panel.is-open {
+	opacity: 1;
+	transform: translateY(0) scale(1);
+	pointer-events: auto;
+}
+
+/* Positioning — set by JS based on widget position */
+.sitestaffr-chat-panel.position-bottom-right,
+.sitestaffr-landing-card.position-bottom-right {
+	bottom: 90px;
+	right: 20px;
+}
+
+.sitestaffr-chat-panel.position-bottom-left,
+.sitestaffr-landing-card.position-bottom-left {
+	bottom: 90px;
+	left: 20px;
+}
+
+/* Raise panels when widget is raised for below-widget tooltip */
+.sitestaffr-chat-panel.sitestaffr-tooltip--bottom.position-bottom-right,
+.sitestaffr-landing-card.sitestaffr-tooltip--bottom.position-bottom-right {
+	bottom: 120px;
+	right: 20px;
+}
+
+.sitestaffr-chat-panel.sitestaffr-tooltip--bottom.position-bottom-left,
+.sitestaffr-landing-card.sitestaffr-tooltip--bottom.position-bottom-left {
+	bottom: 120px;
+	left: 20px;
+}
+
+
+/* ===========================
+   CHAT HEADER
+   =========================== */
+
+.sitestaffr-chat-header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 16px 14px 16px 18px;
+	color: var(--chat-text-on-primary);
+	background:
+		radial-gradient(120% 140% at 0% 0%, var(--ss-accent-lift) 0%, transparent 55%),
+		linear-gradient(135deg, var(--ss-accent) 0%, var(--ss-accent-deep) 100%);
+	flex-shrink: 0;
+}
+
+.sitestaffr-chat-avatar {
+	flex: 0 0 auto;
+	width: 38px;
+	height: 38px;
+	border-radius: 50%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 16px;
+	font-weight: 700;
+	line-height: 1;
+	background: rgba(255, 255, 255, 0.18);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+	color: inherit;
+}
+
+/*
+ * min-width: 0 is load-bearing. A flex child floors at its intrinsic width by default, which
+ * would stop the title's ellipsis from ever engaging and push the close button off a narrow
+ * panel.
+ */
+.sitestaffr-chat-header-identity {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-width: 0;
+	gap: 2px;
+}
+
+.sitestaffr-chat-header-title {
+	font-size: 15.5px;
+	font-weight: 650;
+	line-height: 1.25;
+	letter-spacing: -0.01em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	margin: 0;
+}
+
+/*
+ * Required disclosure, not decoration: the visitor has to be able to tell they are talking to an
+ * AI. Never hide this, and never make it owner-configurable.
+ */
+.sitestaffr-chat-header-subtitle {
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.3;
+	/* Full ink: on a mid-tone brand (an orange) any transparency here dropped the AI
+	   disclosure below 4.5:1, and this is the one line that must stay readable. */
+	opacity: 1;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.sitestaffr-chat-header-actions {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex-shrink: 0;
+}
+
+.sitestaffr-chat-panel .sitestaffr-chat-header-btn {
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+	color: inherit;
+	cursor: pointer;
+	border-radius: min(50%, var(--ss-r-round));
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0.85;
+	transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.sitestaffr-chat-panel .sitestaffr-chat-header-btn:hover {
+	opacity: 1;
+	background: rgba(255, 255, 255, 0.16);
+}
+
+.sitestaffr-chat-header-btn svg {
+	width: 18px;
+	height: 18px;
+}
+
+.sitestaffr-chat-panel .sitestaffr-chat-mute-btn.is-muted {
+	opacity: 0.5;
+}
+
+/* Header: light — the panel's own surface, dark ink, a hairline below. */
+.sitestaffr-chat-panel:where([data-ss-header="light"]) .sitestaffr-chat-header {
+	background: var(--chat-bg);
+	color: var(--chat-text);
+	border-bottom: 1px solid var(--chat-border);
+	padding: 18px 14px 16px 20px;
+}
+
+.sitestaffr-chat-panel:where([data-ss-header="light"]) .sitestaffr-chat-avatar {
+	background: var(--ss-accent);
+	color: var(--ss-on-accent);
+	box-shadow: 0 0 0 3px var(--ss-accent-soft);
+}
+
+.sitestaffr-chat-panel:where([data-ss-header="light"]) .sitestaffr-chat-header-subtitle {
+	color: var(--chat-text-muted);
+	opacity: 1;
+}
+
+.sitestaffr-chat-panel:where([data-ss-header="light"]) .sitestaffr-chat-header-btn {
+	color: var(--chat-text-muted);
+}
+
+.sitestaffr-chat-panel:where([data-ss-header="light"]) .sitestaffr-chat-header-btn:hover {
+	background: var(--chat-border);
+	color: var(--chat-text);
+}
+
+/* Header: hero — a taller brand area the conversation slides up over like a sheet. The
+   panel itself is the sheet's color (#327): with the brand behind it, the input pill's
+   margin showed the brand and the pill sat on the colored bottom edge. The header paints
+   behind the sheet's rounded top corners, so they still show the brand. */
+.sitestaffr-chat-panel:where([data-ss-header="hero"]) {
+	background: var(--ss-surface);
+}
+
+.sitestaffr-chat-panel:where([data-ss-header="hero"]) .sitestaffr-chat-header {
+	padding: 20px 14px 34px 18px;
+	background:
+		radial-gradient(90% 160% at 100% 0%, var(--ss-accent-lift) 0%, transparent 60%),
+		linear-gradient(160deg, var(--ss-accent) 0%, var(--ss-accent-deep) 100%);
+}
+
+.sitestaffr-chat-panel:where([data-ss-header="hero"]) .sitestaffr-chat-avatar {
+	width: 42px;
+	height: 42px;
+	background: #ffffff;
+	color: var(--ss-accent-text);
+	box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+}
+
+/* The large header's white initial disc used the brand-as-text color, which a dark surface
+   pulls toward white: the initial vanished. On dark it becomes a surface disc with ink.
+   After the hero avatar rule, which it overrides at equal specificity. */
+.sitestaffr-chat-panel:where([data-ss-surface="dark"][data-ss-header="hero"]) .sitestaffr-chat-avatar {
+	background: var(--ss-surface);
+	color: var(--ss-ink);
+}
+
+.sitestaffr-chat-panel:where([data-ss-header="hero"]) .sitestaffr-chat-header-title {
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.sitestaffr-chat-panel:where([data-ss-header="hero"]) .sitestaffr-chat-messages {
+	position: relative;
+	margin-top: -18px;
+	background: var(--ss-surface);
+	border-radius: var(--ss-r) var(--ss-r) 0 0;
+}
+
+.sitestaffr-chat-panel:where([data-ss-header="hero"]) .sitestaffr-chat-char-count,
+.sitestaffr-chat-panel:where([data-ss-header="hero"]) .sitestaffr-contact-form {
+	background: var(--ss-surface);
+}
+
+/* Business initial: off */
+/* Header color (#314): the brand header and the large header in the owner's own color. The
+   brand tokens are redefined on the header itself, so its gradient, ink and depth all come
+   from the custom color; the light header has no fill for a color to go in. */
+.sitestaffr-chat-panel:where([data-ss-header-color="custom"]:not([data-ss-header="light"])) .sitestaffr-chat-header,
+.sitestaffr-landing-card:where([data-ss-header-color="custom"]:not([data-ss-header="light"])) .sitestaffr-landing-card-header {
+	--ss-accent: var(--ss-header-custom);
+	--ss-on-accent: var(--ss-header-ink);
+	--ss-accent-deep: color-mix(in srgb, var(--ss-header-custom) 84%, var(--ss-header-counter));
+	--ss-accent-lift: color-mix(in srgb, var(--ss-header-custom) 94%, var(--ss-header-counter));
+	--chat-text-on-primary: var(--ss-header-ink);
+	color: var(--ss-header-ink);
+}
+
+/* Avatar: the business's square icon (Settings → Brand → Icon) instead of its initial. */
+.sitestaffr-chat-panel:where([data-ss-avatar="logo"]) .sitestaffr-chat-avatar {
+	background: #ffffff var(--ss-logo) center / 76% no-repeat;
+	color: transparent;
+	font-size: 0;
+	box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.sitestaffr-chat-panel:where([data-ss-avatar="off"]) .sitestaffr-chat-avatar {
+	display: none;
+}
+
+/* Labels: spaced capitals — the AI disclosure becomes a small label ABOVE the name.
+   It moves; it never disappears. */
+.sitestaffr-chat-panel:where([data-ss-labels="caps"]) .sitestaffr-chat-header-identity {
+	flex-direction: column-reverse;
+	gap: 6px;
+}
+
+.sitestaffr-chat-panel:where([data-ss-labels="caps"]) .sitestaffr-chat-header-subtitle {
+	font-size: 10.5px;
+	font-weight: 600;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	opacity: 1;
+}
+
+.sitestaffr-chat-panel:where([data-ss-labels="caps"][data-ss-header="light"]) .sitestaffr-chat-header-subtitle {
+	color: var(--ss-accent-text);
+}
+
+.sitestaffr-chat-panel:where([data-ss-labels="caps"]) .sitestaffr-chat-header-title {
+	font-size: 19px;
+	font-weight: 500;
+	letter-spacing: 0.01em;
+}
+
+/* ===========================
+   MESSAGES AREA
+   =========================== */
+
+.sitestaffr-chat-messages {
+	flex: 1;
+	overflow-y: auto;
+	padding: 18px 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	scroll-behavior: smooth;
+}
+
+/* Scrollbar styling */
+.sitestaffr-chat-messages::-webkit-scrollbar {
+	width: 5px;
+}
+
+.sitestaffr-chat-messages::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.sitestaffr-chat-messages::-webkit-scrollbar-thumb {
+	background: #d1d5db;
+	border-radius: 3px;
+}
+
+/* ===========================
+   MESSAGE BUBBLES
+   =========================== */
+
+.sitestaffr-chat-message {
+	max-width: 82%;
+	padding: 11px 15px;
+	border-radius: var(--ss-r-bubble);
+	font-size: 14.5px;
+	line-height: 1.55;
+	word-wrap: break-word;
+	overflow-wrap: break-word;
+	animation: sitestaffr-msg-in 0.2s ease;
+}
+
+/* The tail corner stays a step tighter than the rest, capped so it still reads as a
+   tail at large radii and collapses to nothing at 0. */
+.sitestaffr-chat-message--visitor {
+	align-self: flex-end;
+	background: var(--chat-visitor-bg);
+	color: var(--chat-visitor-text);
+	border-bottom-right-radius: min(6px, var(--ss-r-bubble));
+}
+
+.sitestaffr-chat-message--assistant {
+	align-self: flex-start;
+	background: var(--chat-assistant-bg);
+	color: var(--chat-assistant-text);
+	border-bottom-left-radius: min(6px, var(--ss-r-bubble));
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(15, 23, 42, 0.05);
+}
+
+/* Visitor messages: outlined */
+.sitestaffr-chat-panel:where([data-ss-visitor="outlined"]) .sitestaffr-chat-message--visitor {
+	background: var(--ss-card);
+	color: var(--chat-text);
+	box-shadow: 0 0 0 1px var(--ss-rule), 0 1px 0 1px var(--ss-rule);
+}
+
+/* AI messages: soft gray, no card edge */
+.sitestaffr-chat-panel:where([data-ss-assistant="soft"]) .sitestaffr-chat-message--assistant {
+	background: var(--ss-soft);
+	box-shadow: none;
+}
+
+/* AI messages: plain — text on the page under a short rule in the AI color (#796: never a side line). */
+.sitestaffr-chat-panel:where([data-ss-assistant="plain"]) .sitestaffr-chat-message--assistant {
+	background-color: transparent;
+	background-image: linear-gradient(var(--ss-ai-line), var(--ss-ai-line));
+	background-size: 24px 2px;
+	background-position: 0 0;
+	background-repeat: no-repeat;
+	box-shadow: none;
+	border-radius: 0;
+	padding: 12px 0 2px 0;
+	max-width: 88%;
+}
+
+.sitestaffr-chat-panel:where([data-ss-assistant="plain"]) .sitestaffr-chat-messages {
+	padding: 22px 20px;
+	gap: 16px;
+}
+
+/* Message colors (#314) — the owner's choice of fill, independent of the bubble's shape.
+   Visitor: the brand, or the owner's own color. AI: neutral (the shape's own fill), a
+   tint of the brand, or the owner's own color. A plain AI message has no bubble to fill,
+   so the AI color leaves it alone. */
+.sitestaffr-chat-panel:where([data-ss-visitor-color="custom"]) {
+	--chat-visitor-bg: var(--ss-visitor-custom);
+	--chat-visitor-text: var(--ss-visitor-ink);
+}
+
+.sitestaffr-chat-panel:where([data-ss-ai-color="brand"]:not([data-ss-assistant="plain"])) {
+	--chat-assistant-bg: color-mix(in srgb, var(--ss-accent) 14%, #ffffff);
+	--ss-soft: var(--chat-assistant-bg);
+	--chat-assistant-text: #14181c;
+}
+
+.sitestaffr-chat-panel:where([data-ss-ai-color="brand"][data-ss-surface="dark"]:not([data-ss-assistant="plain"])) {
+	--chat-assistant-bg: color-mix(in srgb, var(--ss-accent) 30%, #15181c);
+	--ss-soft: var(--chat-assistant-bg);
+	--chat-assistant-text: #f5f3f0;
+}
+
+.sitestaffr-chat-panel:where([data-ss-ai-color="custom"]:not([data-ss-assistant="plain"])) {
+	--chat-assistant-bg: var(--ss-ai-custom);
+	--ss-soft: var(--ss-ai-custom);
+	--chat-assistant-text: var(--ss-ai-ink);
+}
+
+/* On a filled AI bubble, the link underline and the typing dots take the bubble's own ink,
+   not the brand: a bubble filled with a brand-like color hid both. */
+.sitestaffr-chat-panel:where([data-ss-ai-color="brand"]:not([data-ss-assistant="plain"])) .sitestaffr-chat-message--assistant a,
+.sitestaffr-chat-panel:where([data-ss-ai-color="custom"]:not([data-ss-assistant="plain"])) .sitestaffr-chat-message--assistant a {
+	text-decoration-color: currentColor;
+}
+
+.sitestaffr-chat-panel:where([data-ss-ai-color="brand"]:not([data-ss-assistant="plain"])) .sitestaffr-chat-typing-dot,
+.sitestaffr-chat-panel:where([data-ss-ai-color="custom"]:not([data-ss-assistant="plain"])) .sitestaffr-chat-typing-dot {
+	background: var(--chat-assistant-text);
+}
+
+/* Every color control does something with every shape (#332). Where a shape has no fill —
+   a light header, an outlined visitor bubble, a plain AI message — its color is the line.
+   --ss-<name>-text is the server's text-safe step of an owner color (text_step()); on a
+   dark surface the color is lifted toward white instead, as --ss-accent-text is. */
+.sitestaffr-chat-panel,
+.sitestaffr-landing-card {
+	--ss-header-line: var(--ss-accent-text);
+	--ss-visitor-line: var(--ss-accent-text);
+	--ss-ai-line: var(--ss-accent-text);
+}
+
+.sitestaffr-chat-panel:where([data-ss-ai-color="neutral"]) {
+	--ss-ai-line: var(--ss-ink-muted);
+}
+
+.sitestaffr-chat-panel:where([data-ss-header-color="custom"]),
+.sitestaffr-landing-card:where([data-ss-header-color="custom"]) {
+	--ss-header-line: var(--ss-header-text);
+}
+
+.sitestaffr-chat-panel:where([data-ss-visitor-color="custom"]) {
+	--ss-visitor-line: var(--ss-visitor-text);
+}
+
+.sitestaffr-chat-panel:where([data-ss-ai-color="custom"]) {
+	--ss-ai-line: var(--ss-ai-text);
+}
+
+.sitestaffr-chat-panel:where([data-ss-header-color="custom"][data-ss-surface="dark"]),
+.sitestaffr-landing-card:where([data-ss-header-color="custom"][data-ss-surface="dark"]) {
+	--ss-header-line: color-mix(in srgb, var(--ss-header-custom) 32%, #ffffff);
+}
+
+.sitestaffr-chat-panel:where([data-ss-visitor-color="custom"][data-ss-surface="dark"]) {
+	--ss-visitor-line: color-mix(in srgb, var(--ss-visitor-custom) 32%, #ffffff);
+}
+
+.sitestaffr-chat-panel:where([data-ss-ai-color="custom"][data-ss-surface="dark"]) {
+	--ss-ai-line: color-mix(in srgb, var(--ss-ai-custom) 32%, #ffffff);
+}
+
+/* Light header: the line under it, and the initial, wear the header color. */
+.sitestaffr-chat-panel:where([data-ss-header="light"]) .sitestaffr-chat-header {
+	border-bottom: 2px solid var(--ss-header-line);
+}
+
+.sitestaffr-chat-panel:where([data-ss-header="light"][data-ss-header-color="custom"]) .sitestaffr-chat-avatar {
+	background: var(--ss-header-custom);
+	color: var(--ss-header-ink);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--ss-header-custom) 22%, transparent);
+}
+
+.sitestaffr-chat-panel:where([data-ss-labels="caps"][data-ss-header="light"]) .sitestaffr-chat-header-subtitle {
+	color: var(--ss-header-line);
+}
+
+/* Outlined visitor bubble: the outline is the visitor color. */
+.sitestaffr-chat-panel:where([data-ss-visitor="outlined"]) .sitestaffr-chat-message--visitor {
+	box-shadow: 0 0 0 1px var(--ss-visitor-line), 0 1px 0 1px var(--ss-visitor-line);
+}
+
+/* Markdown rendering inside assistant bubbles */
+.sitestaffr-chat-message--assistant p {
+	margin: 0 0 0.4em;
+}
+.sitestaffr-chat-message--assistant p:last-child {
+	margin-bottom: 0;
+}
+.sitestaffr-chat-message--assistant ul,
+.sitestaffr-chat-message--assistant ol {
+	margin: 0.4em 0;
+	padding-left: 1.4em;
+}
+.sitestaffr-chat-message--assistant li {
+	margin-bottom: 0.3em;
+}
+.sitestaffr-chat-message--assistant li:last-child {
+	margin-bottom: 0;
+}
+.sitestaffr-chat-message--assistant strong {
+	font-weight: 600;
+}
+.sitestaffr-chat-message--assistant code {
+	background: rgba(0, 0, 0, 0.06);
+	padding: 0.1em 0.3em;
+	border-radius: 3px;
+	font-size: 0.9em;
+}
+.sitestaffr-chat-message--assistant a {
+	color: inherit;
+	text-decoration: underline;
+	text-decoration-color: var(--ss-accent-text);
+	text-underline-offset: 2px;
+	font-weight: 500;
+}
+
+.sitestaffr-chat-message--streaming {
+	/* No extra styles needed — content arrives progressively */
+}
+
+@keyframes sitestaffr-msg-in {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* ===========================
+   TYPING INDICATOR
+   =========================== */
+
+.sitestaffr-chat-typing {
+	align-self: flex-start;
+	display: none;
+	align-items: center;
+	gap: 4px;
+	padding: 12px 16px;
+	background: var(--chat-assistant-bg);
+	border-radius: var(--ss-r-bubble);
+	border-bottom-left-radius: min(6px, var(--ss-r-bubble));
+	box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.05);
+}
+
+.sitestaffr-chat-typing.is-visible {
+	display: flex;
+}
+
+.sitestaffr-chat-typing-dot {
+	width: 7px;
+	height: 7px;
+	background: var(--ss-accent-text);
+	border-radius: 50%;
+	animation: sitestaffr-typing-bounce 1.2s ease-in-out infinite;
+}
+
+.sitestaffr-chat-typing-dot:nth-child(2) {
+	animation-delay: 0.15s;
+}
+
+.sitestaffr-chat-typing-dot:nth-child(3) {
+	animation-delay: 0.3s;
+}
+
+.sitestaffr-chat-panel:where([data-ss-assistant="soft"]) .sitestaffr-chat-typing {
+	background: var(--ss-soft);
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel:where([data-ss-assistant="plain"]) .sitestaffr-chat-typing {
+	background-color: transparent;
+	background-image: linear-gradient(var(--ss-ai-line), var(--ss-ai-line));
+	background-size: 24px 2px;
+	background-position: 0 0;
+	background-repeat: no-repeat;
+	box-shadow: none;
+	border-radius: 0;
+	padding: 14px 0 6px 0;
+}
+
+@keyframes sitestaffr-typing-bounce {
+	0%, 60%, 100% {
+		transform: translateY(0);
+		opacity: 0.4;
+	}
+	30% {
+		transform: translateY(-4px);
+		opacity: 1;
+	}
+}
+
+/* ===========================
+   CHARACTER COUNT
+   =========================== */
+
+.sitestaffr-chat-char-count {
+	font-size: 11px;
+	color: #9ca3af;
+	text-align: right;
+	padding: 0 16px 2px;
+	flex-shrink: 0;
+	display: none;
+}
+
+.sitestaffr-chat-char-count.is-visible {
+	display: block;
+}
+
+.sitestaffr-chat-char-count.near-limit {
+	color: #ef4444;
+}
+
+/* ===========================
+   INPUT AREA
+   =========================== */
+
+/* A practice's request not to share medical details (plugin #765), just above the field. */
+.sitestaffr-chat-health-note {
+	margin: 0 18px 6px;
+	font-size: 12px;
+	line-height: 1.4;
+	text-align: center;
+	color: var(--chat-text-muted, #64748b);
+	flex-shrink: 0;
+}
+
+/* One field with the send button inside it, rather than a box beside a button. */
+.sitestaffr-chat-input-area {
+	/* Positioned so it paints after the message list (itself positioned, with a background),
+	   which otherwise covered the top of the focus ring. */
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0 14px 14px;
+	padding: 5px 5px 5px 8px;
+	border: 1px solid var(--chat-input-border);
+	border-radius: var(--ss-r-round);
+	background: var(--chat-input-bg);
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+	flex-shrink: 0;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sitestaffr-chat-input-area:focus-within {
+	border-color: var(--chat-input-focus);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--ss-accent) 18%, transparent);
+}
+
+.sitestaffr-chat-input-wrapper {
+	flex: 1;
+	position: relative;
+	min-width: 0;
+}
+
+.sitestaffr-chat-panel .sitestaffr-chat-textarea {
+	display: block;
+	width: 100%;
+	min-height: 38px;
+	max-height: 100px;
+	margin: 0;
+	padding: 9px 8px;
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	font-size: 14.5px;
+	font-family: inherit;
+	line-height: 1.4;
+	resize: none;
+	outline: none;
+	box-sizing: border-box;
+	color: var(--chat-text);
+	background: transparent;
+}
+
+.sitestaffr-chat-panel .sitestaffr-chat-textarea:focus {
+	border: none;
+	outline: none;
+	box-shadow: none;
+}
+
+.sitestaffr-chat-textarea::placeholder {
+	color: #9ca3af;
+}
+
+.sitestaffr-chat-panel .sitestaffr-chat-send-btn {
+	width: 38px;
+	height: 38px;
+	border: none;
+	border-radius: var(--ss-r-round);
+	background: var(--chat-primary);
+	color: var(--chat-text-on-primary);
+	box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--ss-accent) 70%, transparent);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	padding: 0;
+	margin: 0;
+	line-height: 1;
+	transition: background 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+}
+
+.sitestaffr-chat-panel .sitestaffr-chat-send-btn:hover {
+	background: var(--chat-primary-hover);
+}
+
+.sitestaffr-chat-panel .sitestaffr-chat-send-btn:active {
+	transform: scale(0.96);
+}
+
+.sitestaffr-chat-panel .sitestaffr-chat-send-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.sitestaffr-chat-panel .sitestaffr-chat-send-btn svg {
+	width: 18px;
+	height: 18px;
+	fill: none;
+	stroke: currentColor;
+	display: block;
+}
+
+/* Under a plain, editorial look the input is a ruled line across the foot of the
+   panel, not a floating pill. */
+.sitestaffr-chat-panel:where([data-ss-assistant="plain"]) .sitestaffr-chat-input-area {
+	margin: 0;
+	padding: 12px 12px 12px 18px;
+	border: none;
+	border-top: 1px solid var(--chat-border);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.sitestaffr-chat-panel:where([data-ss-assistant="plain"]) .sitestaffr-chat-send-btn {
+	width: 42px;
+	height: 42px;
+	box-shadow: none;
+}
+
+/* ===========================
+   LANDING CARD VARIANTS
+   =========================== */
+
+/* Light / Airy chooser: the panel's surface, the question in ink. */
+.sitestaffr-landing-card:where([data-ss-header="light"]) .sitestaffr-landing-card-header {
+	background: transparent;
+	color: var(--chat-text);
+	padding-bottom: 8px;
+}
+
+.sitestaffr-landing-card:where([data-ss-header="light"]) .sitestaffr-landing-card-eyebrow {
+	color: var(--ss-header-line);
+	opacity: 1;
+}
+
+.sitestaffr-landing-card:where([data-ss-header="light"]) .sitestaffr-landing-card-header p {
+	color: var(--chat-text-muted);
+	opacity: 1;
+}
+
+/* The close button's own rule comes later in this file, so the light header hands it a
+   color through a variable rather than competing with it on specificity. */
+.sitestaffr-landing-card:where([data-ss-header="light"]) {
+	--ss-close-color: var(--chat-text-muted);
+	--ss-close-hover: var(--chat-border);
+}
+
+.sitestaffr-landing-card:where([data-ss-header="light"]) .sitestaffr-landing-card-tiles {
+	padding-top: 12px;
+}
+
+/* Hero chooser: a large brand area with the choices lifted over its edge. */
+.sitestaffr-landing-card:where([data-ss-header="hero"]) .sitestaffr-landing-card-header {
+	padding: 24px 56px 58px 22px;
+	background:
+		radial-gradient(90% 160% at 100% 0%, var(--ss-accent-lift) 0%, transparent 60%),
+		linear-gradient(160deg, var(--ss-accent) 0%, var(--ss-accent-deep) 100%);
+}
+
+.sitestaffr-landing-card:where([data-ss-header="hero"]) .sitestaffr-landing-card-header h3 {
+	font-size: 24px;
+	letter-spacing: -0.02em;
+}
+
+.sitestaffr-landing-card:where([data-ss-header="hero"]) .sitestaffr-landing-card-tiles {
+	position: relative;
+	margin-top: -38px;
+	padding-top: 0;
+}
+
+.sitestaffr-landing-card:where([data-ss-header="hero"]) .sitestaffr-landing-tile {
+	border-color: transparent;
+	box-shadow: 0 10px 24px -12px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(15, 23, 42, 0.05);
+}
+
+.sitestaffr-landing-card:where([data-ss-header="hero"]) .sitestaffr-landing-tile-icon {
+	background: var(--ss-accent);
+	color: var(--ss-on-accent);
+}
+
+/* Plain assistant = an index of choices ruled with hairlines, not two cards. */
+.sitestaffr-landing-card:where([data-ss-assistant="plain"]) .sitestaffr-landing-card-tiles {
+	gap: 0;
+	padding: 4px 0 8px;
+}
+
+.sitestaffr-landing-card:where([data-ss-assistant="plain"]) .sitestaffr-landing-tile {
+	background: transparent;
+	border: none;
+	border-top: 1px solid var(--chat-border);
+	border-radius: 0;
+	padding: 18px 22px;
+	box-shadow: none;
+	transform: none;
+}
+
+/* Without its card, the caption sits on the panel's gray, where the muted ink measured
+   4.44:1 (#327 audit). A step toward the main ink clears AA on light and dark alike. */
+.sitestaffr-landing-card:where([data-ss-assistant="plain"]) .sitestaffr-landing-tile-desc {
+	color: color-mix(in srgb, var(--chat-text-muted) 80%, var(--chat-text));
+}
+
+.sitestaffr-landing-card:where([data-ss-assistant="plain"]) .sitestaffr-landing-tile:hover {
+	background: color-mix(in srgb, var(--ss-accent) 6%, transparent);
+}
+
+.sitestaffr-landing-card:where([data-ss-assistant="plain"]) .sitestaffr-landing-tile-icon {
+	width: 28px;
+	height: 28px;
+	background: transparent;
+	color: var(--ss-accent-text);
+}
+
+.sitestaffr-landing-card:where([data-ss-assistant="plain"]) .sitestaffr-landing-tile-icon svg {
+	stroke-width: 1.5;
+}
+
+.sitestaffr-landing-card:where([data-ss-assistant="plain"]) .sitestaffr-landing-tile-chevron {
+	color: var(--ss-accent-text);
+}
+
+/* Labels: spaced capitals on the chooser */
+.sitestaffr-landing-card:where([data-ss-labels="caps"]) .sitestaffr-landing-card-eyebrow {
+	font-size: 10.5px;
+	font-weight: 600;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	margin-bottom: 12px;
+}
+
+.sitestaffr-landing-card:where([data-ss-labels="caps"][data-ss-header="light"]) .sitestaffr-landing-card-eyebrow {
+	color: var(--ss-header-line);
+}
+
+.sitestaffr-landing-card:where([data-ss-labels="caps"]) .sitestaffr-landing-card-header h3 {
+	font-size: 22px;
+	font-weight: 400;
+	letter-spacing: 0.005em;
+}
+
+.sitestaffr-landing-card:where([data-ss-labels="caps"]) .sitestaffr-landing-tile-label {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+}
+
+.sitestaffr-landing-card:where([data-ss-labels="caps"]) .sitestaffr-landing-tile-desc {
+	font-size: 14px;
+}
+
+/* ===========================
+   NOTICE (inactivity, error)
+   =========================== */
+
+.sitestaffr-chat-notice {
+	text-align: center;
+	padding: 8px 16px;
+	font-size: 12px;
+	color: var(--chat-text-muted);
+	font-style: italic;
+}
+
+/* ===========================
+   PANEL-OPEN STATE
+   =========================== */
+
+.sitestaffr-widget.panel-open .sitestaffr-widget-tooltip {
+	display: none;
+}
+
+/* On mobile fullscreen, hide the floating widget button so it doesn't overlap */
+@media (max-width: 480px) {
+	.sitestaffr-widget.panel-open .sitestaffr-widget-button {
+		display: none;
+	}
+
+	/* Whatever added or removed the widget's own class, an open panel covers the screen: no launcher or tooltip over it (#582). */
+	html:has(.sitestaffr-chat-panel.is-open) .sitestaffr-widget .sitestaffr-widget-button,
+	html:has(.sitestaffr-chat-panel.is-open) .sitestaffr-widget .sitestaffr-widget-tooltip {
+		display: none;
+	}
+}
+
+/* The Side panel on a computer (#626) is full height on the chat button's side: the button would sit over its
+   send button, so it hides while the panel is open, as on phones (orchestrator's call, 2026-10-28). The
+   panel's close button is the way out. The owner's preview is not a visitor's page and keeps it. */
+@media (min-width: 481px) {
+	html:has(.sitestaffr-chat-panel.is-open[data-ssp-place="side"]) body:not(.sitestaffr-panel-preview-only) .sitestaffr-widget :is(.sitestaffr-widget-button, .sitestaffr-widget-tooltip) {
+		display: none;
+	}
+}
+
+/* ===========================
+   LANDING CARD CLOSE BUTTON
+   =========================== */
+
+/* Always shown: without it the only way out on desktop was clicking the launcher again. */
+.sitestaffr-landing-card .sitestaffr-landing-card-close {
+	display: inline-flex;
+	position: absolute;
+	top: 14px;
+	right: 14px;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+	color: var(--ss-close-color, var(--chat-text-on-primary));
+	cursor: pointer;
+	border-radius: min(50%, var(--ss-r-round));
+	align-items: center;
+	justify-content: center;
+	opacity: 0.85;
+	transition: opacity 0.15s ease, background 0.15s ease;
+	z-index: 1;
+}
+
+.sitestaffr-landing-card .sitestaffr-landing-card-close:hover {
+	opacity: 1;
+	background: var(--ss-close-hover, rgba(255, 255, 255, 0.16));
+}
+
+.sitestaffr-landing-card-close svg {
+	width: 18px;
+	height: 18px;
+}
+
+@media (max-width: 480px) {
+	/*
+	 * Sized against the VISUAL viewport, not the layout viewport.
+	 *
+	 * Pinning top and bottom (or using 100vh) measures the layout viewport, which
+	 * a soft keyboard does not shrink — so the panel kept its full height, the
+	 * keyboard covered the bottom of it, and mobile Safari scrolled the whole
+	 * fixed panel up to reveal the input, taking the header and greeting off
+	 * screen and leaving blank space behind them.
+	 *
+	 * --ss-vv-height / --ss-vv-top are published by VisualViewportSync in
+	 * sitestaffr-widget.js. The fallbacks reproduce the old full-height behavior
+	 * exactly, so a browser without visualViewport is no worse off than before.
+	 *
+	 * The chooser is full screen, like the chat window, and only its close button closes it
+	 * (Mario, 2026-10-10: on a phone everything chat-related is full view). Its content used
+	 * to be centered in that full height, so the brand band floated mid-page under an empty
+	 * top with the close button stranded above it. Now the band fills the top of the screen
+	 * with its words at its foot, and the choices sit right under them.
+	 */
+	.sitestaffr-chat-panel,
+	.sitestaffr-landing-card {
+		top: var(--ss-vv-top, 0px) !important;
+		left: 0 !important;
+		right: 0 !important;
+		bottom: auto !important;
+		width: auto !important;
+		height: var(--ss-vv-height, 100%) !important;
+		max-height: none !important;
+		border-radius: 0;
+	}
+
+	/*
+	 * With the keyboard up the page behind showed through below the panel (Mario's phone,
+	 * 2026-10-11). The browser pans and resizes the visible area in steps the viewport sync
+	 * can only follow a frame late, and some phones keep a strip it never reports. Two guards
+	 * make that strip invisible whatever its cause: the page stops scrolling under an open
+	 * panel, and the panel paints its own background past every edge.
+	 */
+	html:has(.sitestaffr-chat-panel.is-open),
+	html:has(.sitestaffr-landing-card.is-open),
+	html:has(.sitestaffr-chat-panel.is-open) body,
+	html:has(.sitestaffr-landing-card.is-open) body {
+		overflow: hidden !important;
+		overscroll-behavior: none;
+	}
+
+	.sitestaffr-chat-panel.is-open,
+	.sitestaffr-landing-card.is-open {
+		box-shadow: 0 0 0 100vmax var(--chat-bg);
+	}
+
+	.sitestaffr-landing-card {
+		display: flex;
+		flex-direction: column;
+		overflow-y: auto;
+		padding-bottom: env(safe-area-inset-bottom, 0px);
+	}
+
+	/* A light header has no band to fill the top with, so it keeps its own height. */
+	.sitestaffr-landing-card:not([data-ss-header="light"]) .sitestaffr-landing-card-header {
+		flex: 0 0 auto;
+		min-height: 38%;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		box-sizing: border-box;
+	}
+
+	/* 16px or more: iOS Safari zooms the whole page into any smaller field the moment it is
+	   tapped, and leaves it zoomed after the keyboard closes. */
+	.sitestaffr-chat-panel .sitestaffr-chat-textarea {
+		font-size: 16px;
+	}
+
+	/* Clear the home indicator on a site that draws under it (viewport-fit=cover). */
+	.sitestaffr-chat-input-area {
+		margin-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+	}
+
+	/* With the keyboard up the home indicator is under the keyboard, but iOS still reports its
+	   inset, which left a band of empty space between the field and the keyboard. */
+	html[data-ss-keyboard] .sitestaffr-chat-input-area {
+		margin-bottom: 10px;
+	}
+
+	/* Scrolling to the end of the conversation must not carry on into the page behind. */
+	.sitestaffr-chat-messages {
+		overscroll-behavior: contain;
+	}
+}
+
+/* ===========================
+   CONTACT FORM FALLBACK
+   =========================== */
+
+.sitestaffr-contact-form {
+	padding: 16px;
+	border-top: 1px solid var(--chat-border);
+}
+
+.sitestaffr-contact-form-intro {
+	margin: 0 0 12px;
+	font-size: 14px;
+	color: var(--chat-text);
+	line-height: 1.4;
+}
+
+.sitestaffr-contact-form-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.sitestaffr-chat-panel .sitestaffr-contact-input,
+.sitestaffr-chat-panel .sitestaffr-contact-textarea {
+	width: 100%;
+	margin: 0;
+	padding: 10px 12px;
+	border: 1px solid var(--chat-input-border);
+	border-radius: var(--ss-r-tile);
+	font-size: 14px;
+	font-family: inherit;
+	color: var(--chat-text);
+	background: var(--chat-input-bg);
+	box-sizing: border-box;
+	box-shadow: none;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sitestaffr-chat-panel .sitestaffr-contact-input:focus,
+.sitestaffr-chat-panel .sitestaffr-contact-textarea:focus {
+	outline: none;
+	border-color: var(--chat-input-focus);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--ss-accent) 18%, transparent);
+}
+
+.sitestaffr-chat-panel .sitestaffr-contact-textarea {
+	resize: vertical;
+	min-height: 60px;
+}
+
+.sitestaffr-chat-panel .sitestaffr-contact-submit {
+	padding: 12px 16px;
+	background: var(--chat-primary);
+	color: var(--chat-text-on-primary);
+	border: none;
+	border-radius: var(--ss-r-tile);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.2;
+	cursor: pointer;
+	transition: background 0.15s ease;
+}
+
+.sitestaffr-chat-panel .sitestaffr-contact-submit:hover {
+	background: var(--chat-primary-hover);
+}
+
+.sitestaffr-chat-panel .sitestaffr-contact-submit:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.sitestaffr-contact-form-success {
+	margin: 0;
+	padding: 20px 0;
+	text-align: center;
+	font-size: 14px;
+	color: var(--chat-text);
+	line-height: 1.4;
+}
+
+/* System message bubble (mic recovery, etc.) */
+.sitestaffr-chat-bubble--system {
+	background: color-mix(in srgb, var(--ss-accent) 6%, #f4f5f7);
+	color: #475569;
+	font-size: 13px;
+	line-height: 1.5;
+	padding: 10px 14px;
+	border-radius: var(--ss-r-tile);
+	margin: 8px 12px;
+	text-align: center;
+}
+
+/* ===========================
+   REDUCED MOTION
+   =========================== */
+
+@media (prefers-reduced-motion: reduce) {
+	.sitestaffr-chat-panel,
+	.sitestaffr-landing-card,
+	.sitestaffr-landing-tile,
+	.sitestaffr-chat-message,
+	.sitestaffr-chat-typing-dot {
+		transition: none;
+		animation: none;
+	}
+}

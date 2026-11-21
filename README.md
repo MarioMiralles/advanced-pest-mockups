@@ -17,8 +17,9 @@ single homepage with a demo free-inspection form and the SiteStaffr chat widget 
 - Photos, logo, phone, services, the Inspect · Correct · Protect method and the three reviews come from the current site.
 - Text in `[brackets]` (license number, hours, email) is for the owner to supply. Pest facts and the calendar are
   general South Florida guidance.
-- `assets/chat.js` is the SiteStaffr widget mock, configured per page with `data-*` attributes.
-  `assets/motion.*` is the shared scroll motion.
+- `assets/sitestaffr-widget/` is the real SiteStaffr widget (the plugin's own CSS and chat window, canned
+  replies), configured per page with `data-*` attributes on its `demo.js` tag. `assets/chat.js` is the older
+  hand-made mock, no longer used. `assets/motion.*` is the shared scroll motion.
 - Pages carry `noindex`. Fonts load from Google Fonts; everything else is inline.
 - Built with the `site-mockups` skill; `python3 ~/.claude/skills/site-mockups/check.py .` checks every concept
   at 1440 and 390 wide and retakes the gallery shots.

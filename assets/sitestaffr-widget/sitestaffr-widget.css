@@ -1,0 +1,649 @@
+/**
+ * SiteStaffr Fixed Position Widget Styles
+ *
+ * Styles for the floating voice widget ([sitestaffr_widget] shortcode).
+ * Includes 5 widget states: idle, listening, thinking, speaking, error.
+ *
+ * @package    SiteStaffr
+ * @since      0.11.76
+ */
+
+/* ===========================
+   WIDGET CONTAINER
+   =========================== */
+
+.sitestaffr-widget {
+	position: fixed;
+	z-index: 999999;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	opacity: 1 !important;
+	transition: opacity 0.15s ease;
+}
+
+/* Position variants */
+.sitestaffr-widget.position-bottom-right {
+	bottom: 20px;
+	right: 20px;
+}
+
+.sitestaffr-widget.position-bottom-left {
+	bottom: 20px;
+	left: 20px;
+}
+
+/* Raise widget when tooltip is below to prevent clipping */
+.sitestaffr-widget.sitestaffr-tooltip--bottom.position-bottom-right,
+.sitestaffr-widget.sitestaffr-tooltip--bottom.position-bottom-left {
+	bottom: 50px;
+}
+
+/* Mobile responsive - reduce spacing */
+@media (max-width: 768px) {
+	.sitestaffr-widget.position-bottom-right {
+		bottom: 15px;
+		right: 15px;
+	}
+
+	.sitestaffr-widget.position-bottom-left {
+		bottom: 15px;
+		left: 15px;
+	}
+}
+
+/* ===========================
+   WIDGET BUTTON
+   =========================== */
+
+.sitestaffr-widget-button {
+	position: relative;
+	width: var(--widget-size, 60px);
+	height: var(--widget-size, 60px);
+	border-radius: var(--widget-border-radius, 20px 20px 20px 0px);
+	border: var(--widget-bdw, 0) var(--widget-bds, none) var(--widget-bdc, transparent);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	transition: all 0.3s ease;
+	padding: 0;
+	outline: none;
+}
+
+/* Color properties use ID selector for Elementor specificity.
+   The shadow takes the brand's own hue so the button sits on the page like part of
+   the site rather than a gray sticker; the inset line is a hint of top light. Neon
+   replaces all of this with its glow (higher specificity in sitestaffr-theme-neon.css). */
+#sitestaffr-widget .sitestaffr-widget-button {
+	background-color: var(--widget-bg-color, #0073aa);
+	color: var(--widget-icon-color, #ffffff);
+	box-shadow:
+		0 10px 24px -8px rgba(var(--widget-bg-rgb, 15, 23, 42), 0.5),
+		0 4px 10px -4px rgba(15, 23, 42, 0.25),
+		inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* ===========================
+   GLOW (any style, #377)
+   =========================== */
+
+/* The Glow switch. Neon draws its own glow in sitestaffr-theme-neon.css; this is
+   the same glow for every other style, and it takes the place of the brand shadow. */
+#sitestaffr-widget.sitestaffr-glow {
+	/* Fallbacks only; get_neon_style_vars() emits the owner's values inline. The
+	   radii are the same chain as sitestaffr-theme-neon.css, so a glow looks the
+	   same on any style as it does under Neon. */
+	--neon-rgb: 31, 182, 204;
+	--neon-strength: 60;
+	--neon-blur-near: calc(var(--neon-strength) * 0.2px);
+	--neon-blur-far: calc(var(--neon-strength) * 0.5333px);
+	--neon-spread-far: calc(var(--neon-strength) * 0.0667px);
+	--neon-blur-inset: calc(var(--neon-strength) * 0.2px);
+	--neon-icon-strength: var(--neon-strength);
+	--neon-icon-blur-near: calc(var(--neon-icon-strength) * 1px / 15);
+	--neon-icon-blur-far: calc(var(--neon-icon-strength) * 1px / 6);
+}
+
+#sitestaffr-widget.sitestaffr-glow .sitestaffr-widget-button {
+	box-shadow:
+		0 0 var(--neon-blur-near) 1px rgba(var(--neon-rgb), 0.35),
+		0 0 var(--neon-blur-far) var(--neon-spread-far) rgba(var(--neon-rgb), 0.22),
+		inset 0 0 var(--neon-blur-inset) rgba(var(--neon-rgb), 0.28);
+}
+
+#sitestaffr-widget.sitestaffr-glow .sitestaffr-widget-button:hover {
+	box-shadow:
+		0 0 calc(var(--neon-blur-near) * 1.33) 2px rgba(var(--neon-rgb), 0.5),
+		0 0 calc(var(--neon-blur-far) * 1.44) calc(var(--neon-spread-far) * 2) rgba(var(--neon-rgb), 0.3),
+		inset 0 0 calc(var(--neon-blur-inset) * 1.33) rgba(var(--neon-rgb), 0.38);
+}
+
+#sitestaffr-widget.sitestaffr-glow .sitestaffr-icon {
+	filter: var(--neon-icon-filter,
+		drop-shadow(0 0 var(--neon-icon-blur-near) rgba(var(--neon-rgb), 0.9))
+		drop-shadow(0 0 var(--neon-icon-blur-far) rgba(var(--neon-rgb), 0.55)));
+}
+
+/* Theme-bleed guard. Page builders style every bare <button> — Elementor's
+   `.elementor-kit-N button { padding: 20px 50px; border: … }` is (0,1,1) and outranked the
+   (0,1,0) rule above, stretching the launcher sideways and ringing it in the theme's color.
+   The ID scope restates what the launcher's own settings already decided. */
+#sitestaffr-widget .sitestaffr-widget-button {
+	padding: 0;
+	margin: 0;
+	border: var(--widget-bdw, 0) var(--widget-bds, none) var(--widget-bdc, transparent);
+	border-radius: var(--widget-border-radius, 20px 20px 20px 0px);
+	box-sizing: border-box;
+	letter-spacing: normal;
+	text-transform: none;
+	line-height: 1;
+}
+
+.sitestaffr-widget-button:hover {
+	transform: translateY(-2px);
+}
+
+#sitestaffr-widget .sitestaffr-widget-button:hover {
+	box-shadow:
+		0 14px 30px -8px rgba(var(--widget-bg-rgb, 15, 23, 42), 0.55),
+		0 6px 14px -6px rgba(15, 23, 42, 0.28),
+		inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* Hover colors — idle state only (listening/speaking/thinking states have fixed colors) */
+#sitestaffr-widget:not(.state-listening):not(.state-thinking):not(.state-speaking):not(.state-searching):not(.state-error) .sitestaffr-widget-button:hover {
+	background-color: var(--widget-hover-bg-color, var(--widget-bg-color));
+	color: var(--widget-hover-icon-color, var(--widget-icon-color));
+}
+
+#sitestaffr-widget:not(.state-listening):not(.state-thinking):not(.state-speaking):not(.state-searching):not(.state-error) .sitestaffr-widget-button:hover svg {
+	color: var(--widget-hover-icon-color, var(--widget-icon-color));
+}
+
+.sitestaffr-widget-button:active {
+	transform: scale(0.98);
+}
+
+.sitestaffr-widget-button:focus {
+	outline: 2px solid var(--widget-bg-color, #0073aa);
+	outline-offset: 2px;
+}
+
+/* Ensure touch targets are at least 44px */
+@media (max-width: 768px) {
+	.sitestaffr-widget-button {
+		min-width: 44px;
+		min-height: 44px;
+	}
+}
+
+/* ===========================
+   ICONS
+   =========================== */
+
+.sitestaffr-icon {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: var(--widget-icon-size, 24px);
+	height: var(--widget-icon-size, 24px);
+	opacity: 0;
+	transition: opacity 0.3s ease;
+}
+
+/* Show phone icon by default (idle state) */
+.sitestaffr-widget:not(.state-connecting):not(.state-listening):not(.state-thinking):not(.state-speaking):not(.state-searching):not(.state-error) .sitestaffr-icon-phone {
+	opacity: 1;
+}
+
+/* Show microphone icon ONLY when listening */
+.sitestaffr-widget.state-listening .sitestaffr-icon-microphone {
+	opacity: 1;
+}
+
+/* Show spinner when connecting or thinking */
+.sitestaffr-widget.state-connecting .sitestaffr-icon-spinner,
+.sitestaffr-widget.state-thinking .sitestaffr-icon-spinner,
+.sitestaffr-widget.state-searching .sitestaffr-icon-spinner {
+	opacity: 1;
+	animation: sitestaffr-spin 1s linear infinite;
+}
+
+/* Show soundwave when speaking */
+.sitestaffr-widget.state-speaking .sitestaffr-icon-soundwave {
+	opacity: 1;
+}
+
+/* Show phone icon when error (fallback) */
+.sitestaffr-widget.state-error .sitestaffr-icon-phone {
+	opacity: 1;
+}
+
+/* ===========================
+   SOUNDWAVE ANIMATION
+   =========================== */
+
+.sitestaffr-icon-soundwave {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 3px;
+}
+
+.sitestaffr-icon-soundwave span {
+	width: 3px;
+	background-color: currentColor;
+	border-radius: 2px;
+	animation: sitestaffr-soundwave 1s ease-in-out infinite;
+}
+
+.sitestaffr-icon-soundwave span:nth-child(1) {
+	height: 8px;
+	animation-delay: 0s;
+}
+
+.sitestaffr-icon-soundwave span:nth-child(2) {
+	height: 14px;
+	animation-delay: 0.2s;
+}
+
+.sitestaffr-icon-soundwave span:nth-child(3) {
+	height: 10px;
+	animation-delay: 0.4s;
+}
+
+@keyframes sitestaffr-soundwave {
+	0%, 100% {
+		transform: scaleY(1);
+	}
+	50% {
+		transform: scaleY(1.5);
+	}
+}
+
+/* ===========================
+   SPINNER ANIMATION
+   =========================== */
+
+@keyframes sitestaffr-spin {
+	from {
+		transform: translate(-50%, -50%) rotate(0deg);
+	}
+	to {
+		transform: translate(-50%, -50%) rotate(360deg);
+	}
+}
+
+/* ===========================
+   PULSE ANIMATION (LISTENING STATE)
+   =========================== */
+
+.sitestaffr-pulse-ring {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: var(--widget-size, 60px);
+	height: var(--widget-size, 60px);
+	border-radius: var(--widget-border-radius, 20px 20px 20px 0px);
+	border: 2px solid #e74c3c;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.3s ease;
+}
+
+.sitestaffr-widget.state-listening .sitestaffr-pulse-ring {
+	opacity: 1;
+	animation: sitestaffr-pulse 1.5s ease-out infinite;
+}
+
+@keyframes sitestaffr-pulse {
+	0% {
+		transform: translate(-50%, -50%) scale(1);
+		opacity: 0.8;
+	}
+	100% {
+		transform: translate(-50%, -50%) scale(1.5);
+		opacity: 0;
+	}
+}
+
+/* ===========================
+   STATUS TOOLTIP
+   =========================== */
+
+.sitestaffr-widget-tooltip {
+	/* The tooltip wears the brand (#318), the same accent the chat window uses: the
+	   launcher's background, or under Outline (whose background is light) its glow or
+	   border color. It used to be fixed near-black in every style but Neon. */
+	--ss-tip-bg: var(--widget-accent, var(--widget-bg-color, rgba(15, 23, 42, 0.92)));
+	--ss-tip-ink: var(--widget-accent-ink, var(--widget-icon-color, #ffffff));
+	position: absolute;
+	bottom: calc(100% + 10px);
+	left: 50%;
+	transform: translateX(-50%);
+	background-color: var(--ss-tip-bg);
+	color: var(--ss-tip-ink);
+	padding: 9px 13px;
+	border-radius: 10px;
+	font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	font-size: 13px;
+	font-weight: 500;
+	letter-spacing: normal;
+	text-transform: none;
+	box-shadow: 0 10px 24px -10px rgba(15, 23, 42, 0.45);
+	white-space: nowrap;
+	max-width: min(350px, calc(100vw - 24px));
+	text-align: center;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.3s ease;
+	z-index: 10;
+}
+
+.sitestaffr-widget-tooltip::after {
+	content: '';
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	border: 6px solid transparent;
+	border-top-color: var(--ss-tip-bg);
+}
+
+/* Text on the brand, black or white by WCAG relative luminance, exactly as the chat
+   window computes --ss-on-accent (sitestaffr-chat-panel.css). The launcher's Icon color
+   is only the fallback: an icon can be a deliberate low-contrast accent, text cannot. */
+@supports (color: rgb(from red calc(pow(r, 1)) g b)) {
+	.sitestaffr-widget-tooltip {
+		--ss-tip-ink: rgb(from var(--ss-tip-bg)
+			clamp(0, (0.179 - (0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2))) * 100000, 255)
+			clamp(0, (0.179 - (0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2))) * 100000, 255)
+			clamp(0, (0.179 - (0.2126 * pow(r / 255, 2.2) + 0.7152 * pow(g / 255, 2.2) + 0.0722 * pow(b / 255, 2.2))) * 100000, 255));
+	}
+}
+
+/* Keep tooltip inside viewport for edge-pinned widget positions */
+.sitestaffr-widget.position-bottom-right .sitestaffr-widget-tooltip {
+	left: auto;
+	right: 0;
+	transform: none;
+	text-align: left;
+}
+
+.sitestaffr-widget.position-bottom-right .sitestaffr-widget-tooltip::after {
+	left: auto;
+	right: calc((var(--widget-size, 60px) / 2) - 6px);
+	transform: none;
+}
+
+.sitestaffr-widget.position-bottom-left .sitestaffr-widget-tooltip {
+	left: 0;
+	right: auto;
+	transform: none;
+	text-align: left;
+}
+
+.sitestaffr-widget.position-bottom-left .sitestaffr-widget-tooltip::after {
+	left: calc((var(--widget-size, 60px) / 2) - 6px);
+	transform: none;
+}
+
+/* Show tooltip on hover (idle state only) */
+.sitestaffr-widget:not(.state-connecting):not(.state-listening):not(.state-thinking):not(.state-speaking):not(.state-searching):not(.state-error) .sitestaffr-widget-button:hover + .sitestaffr-widget-tooltip {
+	opacity: 1;
+}
+
+/* Tooltip below widget */
+.sitestaffr-widget.sitestaffr-tooltip--bottom .sitestaffr-widget-tooltip {
+	bottom: auto;
+	top: calc(100% + 10px);
+}
+
+.sitestaffr-widget.sitestaffr-tooltip--bottom .sitestaffr-widget-tooltip::after {
+	top: auto;
+	bottom: 100%;
+	border-top-color: transparent;
+	border-bottom-color: var(--ss-tip-bg);
+}
+
+/* Persistent tooltip — always visible when enabled */
+.sitestaffr-widget.sitestaffr-tooltip--persistent .sitestaffr-widget-tooltip {
+	opacity: 1;
+	visibility: visible;
+}
+
+/* Off mode — hide tooltip in idle state; status tooltips still show via state classes */
+.sitestaffr-tooltip--off:not(.state-connecting):not(.state-listening):not(.state-thinking):not(.state-speaking):not(.state-searching):not(.state-error) .sitestaffr-widget-tooltip {
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+}
+
+/* Auto-dismiss tooltip animation — visible immediately, fades out at end */
+@keyframes sitestaffr-tooltip-auto-dismiss {
+	0%    { opacity: 1; }
+	85%   { opacity: 1; }
+	100%  { opacity: 0; }
+}
+
+/* Auto-dismiss bounce nudge for the widget button — starts immediately.
+   It moves the `translate` property, not `transform` (#319). A running animation
+   outranks every normal rule, so animating `transform` held the hover lift and the
+   press at 0 for all 8.8s, and the button looked dead while the tooltip showed.
+   `translate` composes with `transform`, so hover works the whole time. */
+@keyframes sitestaffr-bounce-nudge {
+	0%    { translate: 0 0; }
+	5%    { translate: 0 -8px; }
+	10%   { translate: 0 0; }
+	15%   { translate: 0 -8px; }
+	20%   { translate: 0 0; }
+	25%   { translate: 0 -8px; }
+	30%   { translate: 0 0; }
+	100%  { translate: 0 0; }
+}
+
+.sitestaffr-tooltip--auto-dismiss .sitestaffr-widget-tooltip {
+	animation: sitestaffr-tooltip-auto-dismiss 8.8s ease forwards;
+}
+
+.sitestaffr-tooltip--auto-dismiss .sitestaffr-widget-button {
+	animation: sitestaffr-bounce-nudge 8.8s ease forwards;
+}
+
+/* Show tooltip while the voice session is establishing */
+.sitestaffr-widget.state-connecting .sitestaffr-widget-tooltip {
+	opacity: 1;
+}
+
+/* Show the status the whole time a call is live: listening, thinking and the AI speaking,
+   not only connecting and searching. Mario, 2026-10-10: the icons alone did not say what
+   the assistant was doing while it answered. */
+.sitestaffr-widget.state-listening .sitestaffr-widget-tooltip,
+.sitestaffr-widget.state-thinking .sitestaffr-widget-tooltip,
+.sitestaffr-widget.state-speaking .sitestaffr-widget-tooltip {
+	opacity: 1;
+}
+
+/* Show tooltip during knowledge search with contextual text */
+.sitestaffr-widget.state-searching .sitestaffr-widget-tooltip {
+	opacity: 1;
+	font-style: italic;
+}
+
+/* Update tooltip text based on state */
+.sitestaffr-widget.state-listening .sitestaffr-tooltip-text::before {
+	content: attr(data-listening-text);
+}
+
+.sitestaffr-widget.state-thinking .sitestaffr-tooltip-text::before {
+	content: attr(data-thinking-text);
+}
+
+.sitestaffr-widget.state-speaking .sitestaffr-tooltip-text::before {
+	content: attr(data-speaking-text);
+}
+
+.sitestaffr-widget.state-error .sitestaffr-tooltip-text::before {
+	content: attr(data-error-text);
+}
+
+/* ===========================
+   STATE COLORS
+   =========================== */
+
+/* Listening state - always red button with white icon, no border */
+.sitestaffr-widget.state-listening .sitestaffr-widget-button {
+	background-color: #e74c3c !important;
+	border-color: transparent !important;
+}
+
+.sitestaffr-widget.state-listening .sitestaffr-widget-button svg {
+	stroke: #ffffff !important;
+	fill: none !important;
+}
+
+/* Error state - red button with shake */
+.sitestaffr-widget.state-error .sitestaffr-widget-button {
+	background-color: #e74c3c;
+	animation: sitestaffr-shake 0.5s ease;
+}
+
+@keyframes sitestaffr-shake {
+	0%, 100% {
+		transform: translateX(0);
+	}
+	25% {
+		transform: translateX(-5px);
+	}
+	75% {
+		transform: translateX(5px);
+	}
+}
+
+/* ===========================
+   ACCESSIBILITY
+   =========================== */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+	.sitestaffr-widget-button {
+		border: 2px solid currentColor;
+	}
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+	.sitestaffr-widget-button,
+	.sitestaffr-icon,
+	.sitestaffr-pulse-ring,
+	.sitestaffr-widget-tooltip,
+	.sitestaffr-tooltip--auto-dismiss .sitestaffr-widget-tooltip,
+	.sitestaffr-tooltip--auto-dismiss .sitestaffr-widget-button {
+		transition: none;
+		animation: none;
+	}
+}
+
+/* ===========================
+   MOBILE OPTIMIZATIONS
+   =========================== */
+
+@media (max-width: 768px) {
+	.sitestaffr-widget-tooltip {
+		font-size: 12px;
+		padding: 6px 10px;
+	}
+}
+
+/* ===========================
+   MIC PERMISSION OVERLAY
+   =========================== */
+
+/* Mic permission overlay — shown during getUserMedia() browser prompt */
+.sitestaffr-mic-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.75);
+	z-index: 999998; /* Below browser permission prompt, above everything else */
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	transition: opacity 0.25s ease;
+	pointer-events: none;
+}
+
+.sitestaffr-mic-overlay.is-visible {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.sitestaffr-mic-overlay-text {
+	color: #fff;
+	font-size: 18px;
+	font-weight: 500;
+	text-align: center;
+	max-width: 400px;
+	line-height: 1.5;
+	padding: 0 24px;
+}
+
+.sitestaffr-mic-retry-btn {
+	display: inline-block;
+	background: var(--widget-bg-color, #1FB6CC);
+	color: #fff;
+	border: none;
+	padding: 10px 24px;
+	border-radius: 6px;
+	font-size: 15px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.15s ease;
+}
+
+.sitestaffr-mic-retry-btn:hover {
+	background: var(--widget-hover-bg-color, #00838F);
+}
+
+.sitestaffr-mic-dismiss-btn {
+	display: inline-block;
+	background: none;
+	border: none;
+	color: rgba(255, 255, 255, 0.7);
+	font-size: 14px;
+	cursor: pointer;
+	padding: 6px 12px;
+	margin-top: 4px;
+	transition: color 0.15s ease;
+}
+
+.sitestaffr-mic-dismiss-btn:hover {
+	color: #fff;
+}
+
+/* =============================================
+   TEST MODE CHIP ("Test your widget" admin action)
+   ============================================= */
+
+.sitestaffr-test-chip {
+	position: fixed;
+	bottom: 12px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 999999;
+	padding: 6px 14px;
+	border-radius: 999px;
+	background: #fff3cd;
+	color: #7a5b00;
+	border: 1px solid #f0dc9a;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+	pointer-events: none;
+}
