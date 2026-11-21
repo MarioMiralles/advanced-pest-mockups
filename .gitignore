@@ -3,3 +3,4 @@ __pycache__/
 .check/
 logos/src/*.log
 logos/src/*.png
+logos/src/

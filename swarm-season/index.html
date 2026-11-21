@@ -82,7 +82,7 @@ ul,ol{padding:0;list-style:none}
 /* hero */
 .hero{position:relative;overflow:hidden;background:var(--ink);min-height:min(820px,100svh - 76px);display:flex;align-items:center}
 .hero-photo{position:absolute;top:0;right:0;bottom:0;width:62%}
-.hero-photo img{width:100%;height:100%;object-fit:cover;object-position:20% 25%;filter:saturate(.9) contrast(1.05)}
+.hero-photo img{width:100%;height:100%;object-fit:cover;object-position:62% 45%;filter:saturate(.9) contrast(1.05)}
 .hero-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--ink) 0%,rgba(13,14,15,.82) 18%,rgba(13,14,15,.35) 46%,rgba(13,14,15,.25) 100%),linear-gradient(0deg,rgba(13,14,15,.9) 0%,rgba(13,14,15,0) 40%)}
 .hero-grain{position:absolute;inset:0;pointer-events:none;background:radial-gradient(900px 500px at 8% 110%,rgba(255,74,18,.22),transparent 60%)}
 .hero-in{position:relative;padding:44px 0 140px}
@@ -322,7 +322,7 @@ section{position:relative}
 @media (max-width:900px){
   .hero{min-height:0;display:block}
   .hero-photo{position:relative;width:100%;height:340px}
-  .hero-photo img{object-position:28% 22%}
+  .hero-photo img{object-position:72% 40%}
   .hero-photo::after{background:linear-gradient(0deg,var(--ink) 0%,rgba(13,14,15,.3) 45%,rgba(13,14,15,.15) 100%)}
   .hero-tag{display:none}
   .hero-in{padding:0 0 120px;margin-top:-56px}
@@ -412,7 +412,7 @@ section{position:relative}
 <main id="main">
   <section class="hero" id="top" aria-labelledby="hero-h">
     <div class="hero-photo kenburns">
-      <img src="../assets/img/hero-home.jpg" alt="Charlie Perez on a client's lawn with the Advanced Pest Solutions truck parked behind him" width="1500" height="1125">
+      <img src="../assets/img/hero-swarm.jpg" alt="Winged termite swarmers gathering around a lit window and porch light of a South Florida home at dusk" width="1536" height="1024">
     </div>
     <div class="hero-grain"></div>
     <div class="wrap hero-in">
@@ -440,7 +440,6 @@ section{position:relative}
         </ul>
       </div>
     </div>
-    <p class="hero-tag" data-load style="--d:900ms"><b>Charlie Perez</b>Founder. Clients often call him directly.</p>
   </section>
 
   <section class="zip" aria-labelledby="zip-h">
@@ -917,6 +916,6 @@ section{position:relative}
 })();
 </script>
 <script src="../assets/motion.js"></script>
-<script src="../assets/sitestaffr-widget/demo.js" data-accent="#f03c0c" data-business="Advanced Pest Solutions" data-initials="AP" data-subtitle="AI assistant · English &amp; Español" data-teaser="Bugs? Ask us anything" data-greeting="Hi! Thanks for reaching out to Advanced Pest Solutions. What kind of pest are you seeing? También hablamos español." data-reply="Got it, thanks. What's your zip code and the best number to reach you? Charlie or Natalie will call you back to set up your free inspection." data-reply-es="¡Claro! ¿Cuál es su código postal y el mejor número para llamarle? Charlie o Natalie le llamarán para programar su inspección gratis."></script>
+<script src="../assets/sitestaffr-widget/demo.js" data-accent="#f03c0c" data-look="workshop" data-phone="(305) 385-3838" data-questions="Are those flying termites?|Do you serve my area?|Is it safe for kids and pets?" data-business="Advanced Pest Solutions" data-teaser="Bugs? Ask us anything" data-greeting="Hi! Thanks for reaching out to Advanced Pest Solutions. What kind of pest are you seeing? También hablamos español." data-reply="Got it, thanks. What's your zip code and the best number to reach you? Charlie or Natalie will call you back to set up your free inspection." data-reply-es="¡Claro! ¿Cuál es su código postal y el mejor número para llamarle? Charlie o Natalie le llamarán para programar su inspección gratis."></script>
 </body>
 </html>
