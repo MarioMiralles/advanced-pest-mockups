@@ -32,3 +32,8 @@ Then update the commit above, and check `git diff $OLD $C -- public/js/sitestaff
 public/modules/class-sitestaffr-widget-render-handler.php public/modules/class-sitestaffr-panel-look.php` for
 markup or color changes `demo.js` must follow. Use `origin/main` without checking it out: the plugin
 checkout is shared.
+
+## Where the mockup differs from the plugin on purpose
+
+- The chat header shows the whole business name (two lines if needed). The plugin cuts a long name off with
+  an ellipsis. `data-full-name="off"` restores the plugin's behavior. (Mario, 2026-11-21.)

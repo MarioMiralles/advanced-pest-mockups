@@ -259,6 +259,14 @@ section{position:relative}
 .side .btn{margin-top:auto;align-self:flex-start}
 
 /* contact */
+.onjob{background:var(--ink);padding-top:0}
+.onjob-card{display:grid;grid-template-columns:1.35fr 1fr;border-radius:22px;overflow:hidden;background:var(--coal-2);border:1px solid var(--line-2)}
+.onjob-card img{width:100%;height:100%;min-height:420px;object-fit:cover;object-position:32% 30%}
+.onjob-copy{padding:clamp(28px,4vw,56px);display:flex;flex-direction:column;justify-content:center;gap:16px}
+.onjob-copy h2{font-size:clamp(34px,3.6vw,50px);line-height:1}
+.onjob-copy p{color:var(--mute);font-size:17.5px}
+.onjob-copy .btn{align-self:flex-start;margin-top:8px}
+@media (max-width:900px){.onjob-card{grid-template-columns:1fr}.onjob-card img{min-height:0;height:300px}}
 .contact{background:var(--ink)}
 .contact-grid{display:grid;grid-template-columns:1fr 1.15fr;gap:56px;align-items:start}
 .contact-call{display:block;margin-top:30px;padding:28px;border-radius:20px;background:var(--grad-d);color:var(--ink);text-decoration:none;transition:transform .2s ease}
@@ -373,14 +381,14 @@ section{position:relative}
   .fgrid{grid-template-columns:1fr}
   .foot-grid{grid-template-columns:1fr}
   .guarantee{padding:24px 22px}
-  .callbar{display:flex;align-items:center;justify-content:center;gap:10px;position:fixed;left:12px;right:96px;bottom:22px;z-index:45;height:56px;border-radius:16px;background:var(--grad-d);color:var(--ink);text-decoration:none;font:800 16px/1 var(--f-body);letter-spacing:.02em;box-shadow:0 14px 30px -10px rgba(0,0,0,.7),0 0 0 3px var(--ink)}
+  .callbar{display:flex;align-items:center;justify-content:center;gap:10px;position:fixed;left:12px;right:210px;bottom:24px;z-index:45;height:56px;border-radius:16px;background:var(--grad-d);color:var(--ink);text-decoration:none;font:800 16px/1 var(--f-body);letter-spacing:.02em;box-shadow:0 14px 30px -10px rgba(0,0,0,.7),0 0 0 3px var(--ink)}
   .callbar{transition:transform .35s ease,opacity .35s ease}
   .js .callbar.is-off{transform:translateY(120%);opacity:0;pointer-events:none}
   .callbar svg{width:22px;height:22px}
   .callbar span{font:400 22px/1 var(--f-disp);letter-spacing:.03em}
 }
-@media (max-width:380px){
-  .callbar b{display:none}
+@media (max-width:760px){
+  .callbar span{display:none}
 }
 </style>
 </head>
@@ -642,6 +650,20 @@ section{position:relative}
           <div class="val" data-reveal><h3>Reliable</h3><p>We show up when we say, and we call ahead.</p></div>
           <div class="val" data-reveal><h3>Transparent</h3><p>Honesty is honestly our best policy.</p></div>
           <div class="val" data-reveal><h3>Professional</h3><p>Licensed, careful and respectful of your home.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec onjob" aria-labelledby="onjob-h">
+    <div class="wrap">
+      <div class="onjob-card" data-reveal>
+        <img src="../assets/img/hero-home.jpg" alt="Charlie Perez walking across a client's lawn with the Advanced Pest Solutions truck parked behind him" width="1500" height="1125" loading="lazy">
+        <div class="onjob-copy">
+          <span class="kicker">On the job</span>
+          <h2 class="disp" id="onjob-h">A pest company you can <span class="grad-text">call by name.</span></h2>
+          <p>That's Charlie on a client's lawn, with the truck you'll see around Miami-Dade, Broward and the Keys. Clients often call him directly.</p>
+          <a class="btn btn--hot" href="tel:+13053853838">Call (305) 385-3838</a>
         </div>
       </div>
     </div>
@@ -916,6 +938,6 @@ section{position:relative}
 })();
 </script>
 <script src="../assets/motion.js"></script>
-<script src="../assets/sitestaffr-widget/demo.js" data-accent="#f03c0c" data-look="workshop" data-phone="(305) 385-3838" data-questions="Are those flying termites?|Do you serve my area?|Is it safe for kids and pets?" data-business="Advanced Pest Solutions" data-teaser="Bugs? Ask us anything" data-greeting="Hi! Thanks for reaching out to Advanced Pest Solutions. What kind of pest are you seeing? También hablamos español." data-reply="Got it, thanks. What's your zip code and the best number to reach you? Charlie or Natalie will call you back to set up your free inspection." data-reply-es="¡Claro! ¿Cuál es su código postal y el mejor número para llamarle? Charlie o Natalie le llamarán para programar su inspección gratis."></script>
+<script src="../assets/sitestaffr-widget/demo.js" data-accent="#f03c0c" data-look="workshop" data-phone="(305) 385-3838" data-questions="Are those flying termites?|Do you serve my area?|Is it safe for kids and pets?" data-logo="../assets/img/icon-heritage-stripe.png" data-business="Advanced Pest Solutions" data-teaser="Bugs? Ask us anything" data-greeting="Hi! Thanks for reaching out to Advanced Pest Solutions. What kind of pest are you seeing? También hablamos español." data-reply="Got it, thanks. What's your zip code and the best number to reach you? Charlie or Natalie will call you back to set up your free inspection." data-reply-es="¡Claro! ¿Cuál es su código postal y el mejor número para llamarle? Charlie o Natalie le llamarán para programar su inspección gratis."></script>
 </body>
 </html>

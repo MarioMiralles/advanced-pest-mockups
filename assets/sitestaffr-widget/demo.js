@@ -15,6 +15,9 @@
  *   data-questions  up to three common questions, separated by |
  *   data-mode       both (default), text or voice
  *   data-position   bottom-right (default) or bottom-left
+ *   data-logo       a square logo (path or URL), shown in the chat header in place of the first letter
+ *   data-full-name  on (default) shows the whole business name in the header; off keeps the plugin's
+ *                   ellipsis. Showing it whole is a mockup-only change.
  * data-initials and data-subtitle are read by the old assets/chat.js only: the real header always shows
  * the name's first letter and the literal "AI assistant" disclosure.
  */
@@ -111,6 +114,9 @@
   var greeting = opt('greeting', 'Hi! Thanks for reaching out to ' + business + (/\.$/.test(business) ? '' : '.') + ' How can I help you today?');
   var reply = opt('reply', 'Thanks! Could you share a little more detail and the best number to reach you? Someone from our team will follow up.');
   var replyEs = opt('reply-es', '');
+  var logoRaw = opt('logo', '');
+  var logo = logoRaw ? new URL(logoRaw, location.href).href : '';
+  var fullName = opt('full-name', 'on') !== 'off';
 
   var fill = textSafeFill(accent);
   var ink = wcagInk(fill);
@@ -122,7 +128,7 @@
 
   var config = {
     look: lookName, start: look.start, questions: questions.slice(0, 3), hours: null, phone: phone,
-    mainAction: phone ? { type: 'call' } : null, name: business, short: shortName(business), logo: '', mode: mode,
+    mainAction: phone ? { type: 'call' } : null, name: business, short: shortName(business), logo: logo, mode: mode,
     greeting: '', talk: '', talkNote: '', type: '', typeNote: '', phoneLine: true
   };
   window.sitestaffr_widget_data = window.sitestaffr_widget_data || {
@@ -139,14 +145,14 @@
     'data-ss-background': 'gray', 'data-ss-font': 'standard', 'data-ss-labels': 'regular', 'data-ss-header-color': 'brand',
     'data-ss-visitor-color': 'brand', 'data-ss-ai-color': 'neutral', 'data-ss-surface': 'light',
     'data-ssp-look': lookName, 'data-ssp-bg': look.bg, 'data-ssp-corners': look.corners, 'data-ssp-font': 'site',
-    'data-ssp-mark': 'initial', 'data-ssp-start': look.start, 'data-ssp-phone': look.phone, 'data-ssp-beside': 'none',
+    'data-ssp-mark': logo ? 'logo' : 'initial', 'data-ssp-start': look.start, 'data-ssp-phone': look.phone, 'data-ssp-beside': 'none',
     'data-ssp-own': '', 'data-ssp-place': 'float'
   };
   var style = '--widget-bg-color: ' + fill + '; --widget-hover-bg-color: ' + fill + '; --widget-icon-color: ' + ink +
     '; --widget-hover-icon-color: ' + ink + '; --widget-size: 60px; --widget-icon-size: 24px; --widget-border-radius: 20px 20px 20px 0px;' +
     ' --widget-bg-rgb: ' + rgb(fill).join(', ') + ';' + (isLight(fill) ? ' --widget-accent-text: ' + shade(fill, 0.5) + ';' : '') +
     ' --ss-corners: 20px;' + brandVars(accent) + brandVars(accent) + (isLight(accent) ? '' : ' --ss-brand-text: initial;') +
-    ' --ss-radius: ' + CORNER_PX[look.corners] + 'px;' + (siteFont ? ' --ss-site-font: ' + siteFont + ';' : '');
+    ' --ss-radius: ' + CORNER_PX[look.corners] + 'px;' + (logo ? ' --ss-logo: url("' + logo + '");' : '') + (siteFont ? ' --ss-site-font: ' + siteFont + ';' : '');
 
   var widget = document.createElement('div');
   widget.id = 'sitestaffr-widget';
@@ -196,6 +202,13 @@
     l.href = base + f;
     document.head.appendChild(l);
   });
+  // Mockup-only change: the plugin cuts a long business name off with an ellipsis; mockups show it whole.
+  if (fullName) {
+    var fix = document.createElement('style');
+    fix.textContent = '.sitestaffr-chat-panel .sitestaffr-chat-header-title{white-space:normal!important;' +
+      'overflow:visible!important;text-overflow:clip!important;line-height:1.2!important}';
+    document.head.appendChild(fix);
+  }
   var script = document.createElement('script');
   script.src = base + 'sitestaffr-panel.js';
   script.onload = boot;
